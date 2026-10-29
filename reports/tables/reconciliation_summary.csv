@@ -1,4 +1,4 @@
 recon_status,n_policies,claims_recorded,claims_with_amount,amount
-match,668896,26443.0,26443.0,59908673.16999958
-claims_without_amounts,9116,9657.0,0.0,0.0
-fewer_amounts_than_claims,1,2.0,1.0,543.33
+match,668896,26443,26443,59908673.17
+claims_without_amounts,9116,9657,0,0
+fewer_amounts_than_claims,1,2,1,543.33

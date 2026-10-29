@@ -1,0 +1,4 @@
+comparison,mean_deviance_reduction,fold_sd,folds_improved,t_stat
+glm_offset_only minus glm_poisson,0.002057239348,0.0003473508435,5,13.24346008
+one_factor_BonusMalus minus glm_poisson,0.00541902585,0.0003578582931,5,33.86063815
+portfolio_mean minus glm_poisson,0.01479108712,0.0004147312846,5,79.74772456

@@ -39,9 +39,26 @@ def cmd_report(cfg: Config) -> None:
         con.close()
 
 
+def cmd_frequency(cfg: Config) -> None:
+    from fremtpl2_pricing.data.db import connect
+    from fremtpl2_pricing.models.frequency import run_frequency, save_artifact
+    from fremtpl2_pricing.reporting.frequency import write_frequency_report
+
+    con = connect(cfg, read_only=True)
+    try:
+        res = run_frequency(con, cfg)
+    finally:
+        con.close()
+    log.info("wrote %s", save_artifact(res, cfg, cfg.path("artifacts_dir") / "frequency_glm.json"))
+    log.info("wrote %s", write_frequency_report(res, cfg))
+
+
+STEPS = ["fetch", "build", "report", "frequency"]
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="fremtpl2", description=__doc__)
-    parser.add_argument("step", choices=["fetch", "build", "report", "all"])
+    parser.add_argument("step", choices=[*STEPS, "all"])
     parser.add_argument("--config", default=None, help="path to YAML config")
     parser.add_argument("--force", action="store_true", help="re-download raw data")
     args = parser.parse_args(argv)
@@ -51,8 +68,9 @@ def main(argv: list[str] | None = None) -> None:
         "fetch": lambda: cmd_fetch(cfg, args.force),
         "build": lambda: cmd_build(cfg),
         "report": lambda: cmd_report(cfg),
+        "frequency": lambda: cmd_frequency(cfg),
     }
-    for name in ["fetch", "build", "report"] if args.step == "all" else [args.step]:
+    for name in STEPS if args.step == "all" else [args.step]:
         steps[name]()
 
 

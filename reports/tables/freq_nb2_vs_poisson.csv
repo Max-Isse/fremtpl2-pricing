@@ -1,0 +1,3 @@
+model,log_likelihood,aic,alpha,n_params,lr_vs_poisson,p_boundary_mixture
+Poisson,-84927.24744,170004.4949,0,75,,
+NB2,-84782.85609,169717.7122,0.7270377159,76,288.7826934,4.578975327e-65

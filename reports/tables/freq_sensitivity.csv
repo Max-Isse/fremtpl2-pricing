@@ -1,0 +1,21 @@
+variant,factor,max_abs_relativity_change,mean_abs_relativity_change
+claim count = recorded ClaimNb (D-003),DrivAge,0.1447498356,0.06294923738
+claim count = recorded ClaimNb (D-003),VehAge,2.039847515,0.3307271495
+claim count = recorded ClaimNb (D-003),VehPower,0.2908726325,0.1388093902
+claim count = recorded ClaimNb (D-003),BonusMalus,0.2631634332,0.201306051
+claim count = recorded ClaimNb (D-003),LogDensity,0.1410473723,0.08050690979
+claim count = recorded ClaimNb (D-003),VehBrand,0.56750181,0.08901948941
+claim count = recorded ClaimNb (D-003),VehGas,0.2040997588,0.2040997588
+claim count = recorded ClaimNb (D-003),Region,0.2580431908,0.1355839849
+claim count = recorded ClaimNb (D-003),AgeMalus,0.1723361135,0.1044130565
+claim count = recorded ClaimNb (D-003),base frequency (intercept),0.8070319009,0.8070319009
+"exposure-band control removed (option A, D-012)",DrivAge,0.06564913022,0.02640757556
+"exposure-band control removed (option A, D-012)",VehAge,0.1601480297,0.03548690311
+"exposure-band control removed (option A, D-012)",VehPower,0.02146505138,0.01154876114
+"exposure-band control removed (option A, D-012)",BonusMalus,0.1651949372,0.09130964231
+"exposure-band control removed (option A, D-012)",LogDensity,0.01611337823,0.008608527055
+"exposure-band control removed (option A, D-012)",VehBrand,0.09907709679,0.01888052194
+"exposure-band control removed (option A, D-012)",VehGas,0.02052115126,0.02052115126
+"exposure-band control removed (option A, D-012)",Region,0.1475054689,0.05874008157
+"exposure-band control removed (option A, D-012)",AgeMalus,0.03037918197,0.02288550054
+"exposure-band control removed (option A, D-012)",base frequency (intercept),0.1365170808,0.1365170808

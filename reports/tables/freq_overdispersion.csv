@@ -1,0 +1,4 @@
+test,statistic,detail
+Pearson chi2 / df,1.266990104,"chi2=687,374, df=542,525"
+Deviance / df,0.2380854565,
+Cameron-Trivedi alpha (NB2 form),0.7086110953,"se=0.2276, t=3.11, one-sided p=0.00092"

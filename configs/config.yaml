@@ -11,6 +11,7 @@ paths:
   reports_dir: reports
   tables_dir: reports/tables
   figures_dir: reports/figures
+  artifacts_dir: artifacts
 
 openml:
   freq_id: 41214   # freMTPL2freq: one row per policy(-period), exposure and claim count
@@ -31,6 +32,37 @@ cleaning:
 split:
   holdout_fraction: 0.20
   n_folds: 5
+
+glm:
+  # Banded numeric factors: left-closed lower edges, last band open-ended (see decisions.md D-009).
+  bands:
+    DrivAge: [18, 21, 26, 31, 41, 51, 61, 71]
+    VehAge: [0, 1, 3, 6, 10, 13, 16, 20]
+    VehPower: [4, 5, 6, 7, 8, 9, 10, 12]
+    BonusMalus: [50, 51, 58, 68, 80, 95, 100, 115]
+    LogDensity: [0, 3, 4, 5, 6, 7, 8, 9]     # ln(Density)
+  categorical: [VehBrand, VehGas, Region]
+  factors: [DrivAge, VehAge, VehPower, BonusMalus, LogDensity, VehBrand, VehGas, Region, AgeMalus]
+  # Fitted but not charged: pinned at the reference level when pricing (D-012).
+  controls:
+    ExposureBand:
+      source: exposure
+      edges: [0.0, 0.0833, 0.25, 0.5, 0.75, 0.999, 1.0]
+      reference: "(0.999, 1]"              # full-year cover
+  candidate_factors: [Area]                  # tested by LR test against the main model (add-one)
+  derived:
+    AgeMalus:                                # driver-age band x malus flag (D-011)
+      age_cuts: [18, 31, 61]
+      all_age_labels: ["18-30", "31-60", "61+"]
+      age_labels: ["18-30", "61+"]           # 31-60 with a malus stays in the base level (identifiability)
+      malus_threshold: 50
+  ci_level: 0.95
+
+frequency:
+  baseline_one_factor: BonusMalus
+  significance: 0.05
+  residual_seed_offset: 1                    # added to the global seed for randomised quantile residuals
+  residual_sample: 50000                     # residuals plotted on a sample to keep figures light
 
 exposure_analysis:
   # Exposure band edges in years (right-closed). 1/12 ~ one month.

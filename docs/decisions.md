@@ -81,3 +81,52 @@ chronological, and D-003 shows its first block is structurally different.
 the free coefficient fits better (0.67, 95% CI 0.65 to 0.69). See `docs/methodology.md` §1.
 **Alternatives:** free coefficient (better deviance, but not a filable pricing rule); ignoring exposure
 (halves the implied annual frequency).
+
+## D-009 GLM factor banding and reference levels
+**Choice:** band DrivAge, VehAge, VehPower, BonusMalus and log(Density) at the edges in `configs/config.yaml`
+(`glm.bands`), with left-closed bands and an open-ended top band. VehBrand, VehGas and Region stay as given. The
+reference level of each factor is its largest-exposure level. Area is excluded.
+**Why:** banding gives one filable relativity per level. The edges follow the exposure tables, and every band has
+at least 1,450 training exposure-years (the smallest is BonusMalus 115+). Region keeps all 22 levels, some of them
+thin; see phase 5. Area's boundaries are nested cuts of Density (A ≤ 50, …, F ≥ 10,008 inhabitants/km²), and given
+log-density bands it adds nothing (add-one LR p = 0.093, quasi-F p = 0.19).
+**Alternatives:** splines or continuous log(BonusMalus) (smoother, but harder to file and to compare with the
+tariff structure); Area instead of Density (coarser: 6 levels vs 8).
+
+## D-010 Poisson mean, cluster-robust inference
+**Choice:** fit the frequency tariff by Poisson maximum likelihood. Report Wald CIs and tests from a cluster-robust
+(sandwich) covariance with profile groups as clusters. Fit NB2 for comparison, not as the tariff.
+**Why:** with the exposure-band control, overdispersion is real but modest. Pearson χ²/df is 1.27, Cameron–Trivedi
+gives α = 0.71 (p = 0.0009) and NB2 gives α = 0.73. NB2 relativities differ from Poisson by at most 1.8%, so the
+tariff hardly changes. Cluster-robust SEs don't depend on a variance assumption and also cover correlation between
+split records of one policy. They average 3.5% above the model-based SEs, against +2.3% for NB2 and +12.6% for
+quasi-Poisson.
+**Alternatives:** NB2 as the tariff model (nearly the same means, extra parameter, harder to deploy); quasi-Poisson
+(a single inflation factor for every coefficient).
+
+## D-011 AgeMalus interaction
+**Choice:** add a derived factor with levels `base`, `18-30 & malus` and `61+ & malus` (malus = BonusMalus > 50).
+A malus at ages 31–60 stays in `base`, which keeps the factor identifiable alongside the BonusMalus bands.
+**Why:** out-of-fold A/E on segments outside the model showed older drivers with a malus under-predicted (up to
+1.33) and older drivers at BM=50 over-predicted. The factor brings these segments to 0.96–1.06. It is strongly
+significant (LR χ² = 113, 2 df; relativities 0.73 and 1.52), improves CV deviance in 5/5 folds, and has a
+plain-language reading: a malus says more about recent claims for an experienced driver than for a young one.
+**Alternatives:** a full DrivAge × BonusMalus interaction (dozens of thin cells, unstable); leaving it to the GBM
+(the GLM tariff would then knowingly misprice older drivers with claims).
+
+## D-012 Exposure-band control, priced at full year (adopted 2026-10-29)
+**Choice:** fit the frequency GLM with an exposure-band control factor (`glm.controls.ExposureBand`) alongside the
+log(exposure) offset. When pricing (`GLMDesign.matrix(..., pricing=True)`), pin the control at the full-year band,
+so every policy gets the full-year annual rate, charged pro rata to time on cover.
+**Why:** with the offset alone, the short-record effect (methodology §1) leaks into the base rate and
+relativities. Full-year records, which are what is quoted, come out at out-of-fold A/E 0.82, i.e. overcharged by
+about 18%. With the control, full-year A/E is 1.000 (95% CI 0.977–1.023). Removing the control would move the base
+frequency by 14% and some BonusMalus and Region relativities by up to 17%. Out-of-fold deviance also improves
+(5.8% vs 5.0% explained).
+**Consequence, carried into phase 6:** charging every record pro rata at the full-year rate funds 16,542 of
+21,152 training claims (book A/E 1.28), because short records claim more per year. That excess has to be funded
+by a separate, explicit mechanism, such as a short-period or cancellation rate scale or a book-level loading.
+Phase 6 makes it a configurable loading with sensitivity analysis. Option A hid the same cost inside every
+full-year premium.
+**Alternatives considered:** option A (offset only), rejected for the full-year bias; a free log(exposure)
+coefficient, rejected because it is a non-pro-rata rule (D-008).

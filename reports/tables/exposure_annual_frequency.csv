@@ -1,5 +1,5 @@
 model,annual_frequency
-observed (claims / exposure years),0.07394388142584259
-offset,0.07945224136151874
-ignored,0.038862877800221
-feature,0.0671094344324757
+observed (claims / exposure years),0.07394388143
+offset,0.07945224136
+ignored,0.0388628778
+feature,0.06710943443

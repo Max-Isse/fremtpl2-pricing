@@ -21,6 +21,7 @@ import statsmodels.formula.api as smf
 
 from fremtpl2_pricing.config import Config
 from fremtpl2_pricing.data.db import query_df, run_sql_file
+from fremtpl2_pricing.models.glm import poisson_deviance
 
 MODELS = ("offset", "ignored", "feature")
 VALIDATION_FOLD = 0
@@ -96,12 +97,6 @@ def predict(results: dict[str, sm.GLM], df: pd.DataFrame, annual: bool = False) 
         "ignored": results["ignored"].predict(frame).to_numpy(),
         "feature": results["feature"].predict(frame).to_numpy(),
     }
-
-
-def poisson_deviance(y: np.ndarray, mu: np.ndarray) -> float:
-    with np.errstate(divide="ignore", invalid="ignore"):
-        term = np.where(y > 0, y * np.log(y / mu), 0.0)
-    return float(2 * np.sum(term - (y - mu)))
 
 
 def run_exposure_analysis(con: duckdb.DuckDBPyConnection, cfg: Config) -> ExposureResults:

@@ -1,8 +1,8 @@
 step,rows_affected,exposure_change,claims_change,amount_change
-Cap exposure at 1 year,1224.0,-139.34000000008382,0.0,0.0
-Drop non-positive exposure,0.0,-0.0,0.0,0.0
-Drop claims whose IDpol is not in freMTPL2freq,195.0,0.0,0.0,-788714.1799999998
-Drop non-positive claim amounts,0.0,0.0,0.0,-0.0
-Claim count source = severity_records,9117.0,0.0,-9658.0,0.0
-Cap claim count at 4,8.0,0.0,-39.0,0.0
-Cap claim amounts at the q=0.995 training quantile (excess -> loading),139.0,0.0,0.0,-15472273.893500024
+Cap exposure at 1 year,1224,-139.34,0,0
+Drop non-positive exposure,0,-0,0,0
+Drop claims whose IDpol is not in freMTPL2freq,195,0,0,-788714.18
+Drop non-positive claim amounts,0,0,0,-0
+Claim count source = severity_records,9117,0,-9658,0
+Cap claim count at 4,8,0,-39,0
+Cap claim amounts at the q=0.995 training quantile (excess -> loading),139,0,0,-15472273.89

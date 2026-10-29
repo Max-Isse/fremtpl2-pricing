@@ -9,3 +9,4 @@ data/processed/
 *.duckdb
 *.duckdb.wal
 .ipynb_checkpoints/
+artifacts/

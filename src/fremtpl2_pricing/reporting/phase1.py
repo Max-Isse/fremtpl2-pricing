@@ -27,7 +27,7 @@ def md(df: pd.DataFrame, floatfmt: str = ",.4g") -> str:
 def _write_tables(tables: dict[str, pd.DataFrame], tables_dir: Path) -> None:
     tables_dir.mkdir(parents=True, exist_ok=True)
     for name, df in tables.items():
-        df.to_csv(tables_dir / f"{name}.csv", index=False)
+        df.to_csv(tables_dir / f"{name}.csv", index=False, float_format="%.10g")  # stable across parallel sums
 
 
 def write_quality_report(rep: QualityReport, cfg: Config) -> Path:

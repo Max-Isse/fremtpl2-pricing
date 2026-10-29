@@ -21,7 +21,8 @@ fresh download produces different hashes, results are not comparable with the co
 ## Synthetic data
 
 None is used in any reported result. `tests/conftest.py` contains a 25-row hand-built fixture and
-`tests/test_exposure.py` simulates a Poisson portfolio with a known rate; both exist only to test code
+`tests/test_exposure.py` and `tests/test_frequency.py` simulate Poisson / negative-binomial portfolios with known
+parameters (to check that estimators and tests recover the truth); all exist only to test code
 (CI cannot download the full data on every run) and are never written to `data/`.
 
 Phase 6 will add a SYNTHETIC Monte Carlo of claims on the retained book; it will be listed here when added.

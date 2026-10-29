@@ -4,7 +4,7 @@ Frequency–severity pricing for French motor third-party liability on the publi
 covers GLMs with proper exposure handling, LightGBM benchmarks, calibration and stability checks, fairness
 review, a pricing-strategy simulation and a rating-engine API.
 
-**Status:** phase 1 of 8 is complete (data, SQL layer, cleaning, exposure analysis). See
+**Status:** phases 1–2 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency GLM). See
 [docs/phase_plan.md](docs/phase_plan.md).
 
 ## Decision supported
@@ -28,19 +28,34 @@ All numbers come from [reports/data_quality.md](reports/data_quality.md) and
   observed). Using log(exposure) as a free feature fits better (coefficient 0.67) but gives a non-filable
   pro-rata rule (D-008, [methodology §1](docs/methodology.md)).
 
+## Phase 2 findings (frequency GLM)
+
+All numbers come from [reports/frequency.md](reports/frequency.md).
+
+- **Full-year cover is priced correctly.** An exposure-band control is fitted but not charged (D-012). Out of
+  fold, full-year A/E is 1.000; with exposure only as an offset it was 0.82, overcharging full-year customers by
+  about 18%. Short records still claim more per year than a pro-rata tariff collects (book A/E 1.28), so that
+  cost becomes an explicit loading in phase 6.
+- **The GLM beats the baselines out of fold.** It explains 5.8% of Poisson deviance, against 3.7% for a
+  BonusMalus-only tariff, and wins in 5/5 grouped folds.
+- **Overdispersion is modest.** Pearson χ²/df is 1.27 and NB2 changes relativities by at most 1.8%. Inference uses
+  standard errors clustered by rating profile (D-010).
+- **An age × malus interaction was added.** Older drivers with a malus were under-predicted by up to 33%; a
+  two-level AgeMalus factor fixes it (D-011).
+
 ## How to run
 
 Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 (uv installs it if missing).
 
 ```bash
 uv sync                    # install pinned dependencies from uv.lock
-uv run fremtpl2 all        # fetch -> build DuckDB -> regenerate reports (~1 min after first download)
+uv run fremtpl2 all        # fetch -> build -> report -> frequency (~9 min; the frequency step is ~7)
 uv run pytest              # tests (the full-data leakage test runs when the DB exists)
 uv run ruff check .        # lint
 ```
 
 `make all` / `make test` / `make lint` wrap the same commands where `make` is available. The individual
-steps are `uv run fremtpl2 fetch | build | report`. Every threshold is set in
+steps are `uv run fremtpl2 fetch | build | report | frequency`. Every threshold is set in
 [configs/config.yaml](configs/config.yaml).
 
 ## Layout
