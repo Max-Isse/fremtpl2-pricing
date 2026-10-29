@@ -1,0 +1,60 @@
+"""Command-line entry point: `fremtpl2 <step>` (or `python -m fremtpl2_pricing.cli <step>`)."""
+
+from __future__ import annotations
+
+import argparse
+import logging
+from collections.abc import Callable
+
+from fremtpl2_pricing.config import Config, load_config
+
+log = logging.getLogger("fremtpl2")
+
+
+def cmd_fetch(cfg: Config, force: bool = False) -> None:
+    from fremtpl2_pricing.data.fetch import fetch_raw
+
+    paths = fetch_raw(cfg, force=force)
+    log.info("raw data cached: %s", {k: str(v) for k, v in paths.items()})
+
+
+def cmd_build(cfg: Config) -> None:
+    from fremtpl2_pricing.data.build import build_database
+
+    build_database(cfg).close()
+    log.info("database built: %s", cfg.path("duckdb"))
+
+
+def cmd_report(cfg: Config) -> None:
+    from fremtpl2_pricing.analysis.exposure import run_exposure_analysis
+    from fremtpl2_pricing.data.db import connect
+    from fremtpl2_pricing.data.quality import build_quality_report
+    from fremtpl2_pricing.reporting.phase1 import write_exposure_report, write_quality_report
+
+    con = connect(cfg)
+    try:
+        log.info("wrote %s", write_quality_report(build_quality_report(con, cfg), cfg))
+        log.info("wrote %s", write_exposure_report(run_exposure_analysis(con, cfg), cfg))
+    finally:
+        con.close()
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(prog="fremtpl2", description=__doc__)
+    parser.add_argument("step", choices=["fetch", "build", "report", "all"])
+    parser.add_argument("--config", default=None, help="path to YAML config")
+    parser.add_argument("--force", action="store_true", help="re-download raw data")
+    args = parser.parse_args(argv)
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    cfg = load_config(args.config)
+    steps: dict[str, Callable[[], None]] = {
+        "fetch": lambda: cmd_fetch(cfg, args.force),
+        "build": lambda: cmd_build(cfg),
+        "report": lambda: cmd_report(cfg),
+    }
+    for name in ["fetch", "build", "report"] if args.step == "all" else [args.step]:
+        steps[name]()
+
+
+if __name__ == "__main__":
+    main()

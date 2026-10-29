@@ -1,0 +1,15 @@
+table,description,rows
+raw_freq,freMTPL2freq as downloaded,678013
+raw_sev,freMTPL2sev as downloaded (one row per claim),26639
+policy,rating factors per IDpol,678013
+exposure,"exposure per IDpol, capped and flagged",678013
+claims,claims with policy-match and amount flags,26639
+"claims (policy found, amount > 0)",claims usable for severity,26444
+reconciliation,ClaimNb vs amount records per IDpol,678013
+profile_groups,distinct rating-factor profiles,528765
+policy_clean,frequency / pure-premium base,678013
+policy_clean (train),,542600
+policy_clean (holdout),,135413
+claims_clean,severity base (capped amounts),26444
+claims_clean (train),,21191
+claims_clean (holdout),,5253

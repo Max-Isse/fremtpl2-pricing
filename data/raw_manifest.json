@@ -1,0 +1,34 @@
+{
+  "freq": {
+    "openml_id": 41214,
+    "openml_version": "1",
+    "file": "data/raw/freMTPL2freq.parquet",
+    "rows": 678013,
+    "columns": [
+      "IDpol",
+      "ClaimNb",
+      "Exposure",
+      "Area",
+      "VehPower",
+      "VehAge",
+      "DrivAge",
+      "BonusMalus",
+      "VehBrand",
+      "VehGas",
+      "Density",
+      "Region"
+    ],
+    "sha256": "a7741bdd83989ca670cabaf7eeabbf19ee7a9f53a2a65927ebd41388ce574898"
+  },
+  "sev": {
+    "openml_id": 41215,
+    "openml_version": "1",
+    "file": "data/raw/freMTPL2sev.parquet",
+    "rows": 26639,
+    "columns": [
+      "IDpol",
+      "ClaimAmount"
+    ],
+    "sha256": "3ad56a16c15b671ac4d50c005cf733043c98a03774c4c95dd1facfd0672d8b09"
+  }
+}
