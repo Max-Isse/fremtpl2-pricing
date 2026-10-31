@@ -143,6 +143,18 @@ pricing:
     cap: [0.05, 0.10, 0.15, 0.25]
     reference_truth: [blend, glm, lgbm]
 
+scoring:
+  model_name: fremtpl2-glm-tariff
+  top_factors: 3                             # rating factors returned per quote, by size of effect
+  max_batch: 1000                            # policies per /quote/batch request
+  ranges:                                    # inclusive validation ranges (training data limits)
+    VehPower: [4, 15]
+    VehAge: [0, 100]
+    DrivAge: [18, 100]
+    BonusMalus: [50, 230]
+    Density: [1, 27000]
+  exposure_min: 0.001                        # contract term in years: (0, 1]
+
 exposure_analysis:
   # Exposure band edges in years (right-closed). 1/12 ~ one month.
   exposure_bands: [0.0, 0.0833, 0.25, 0.5, 0.75, 0.999, 1.0]

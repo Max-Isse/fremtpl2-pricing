@@ -8,6 +8,7 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "duckdb>=2.0.0",
+    "fastapi>=0.162.0",
     "lightgbm>=4.7.0",
     "matplotlib>=3.11.2",
     "numpy>=2.4.6",
@@ -17,6 +18,7 @@ dependencies = [
     "scikit-learn>=1.9.1",
     "statsmodels>=0.15.0",
     "tabulate>=0.10.0",
+    "uvicorn>=0.54.0",
 ]
 
 [build-system]
@@ -25,6 +27,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "mypy>=2.4.1",
     "pandas-stubs>=3.0.5.260914",
     "pytest>=9.2.0",

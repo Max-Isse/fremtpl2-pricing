@@ -1,0 +1,6 @@
+VehPower,VehAge,DrivAge,BonusMalus,VehBrand,VehGas,Density,Region,exposure,current_premium
+6,4,35,50,B12,Regular,1200,R24,1.0,
+5,12,58,50,B1,Diesel,45,R53,1.0,70
+7,0,19,100,B2,Regular,8000,R11,1.0,
+6,2,72,62,B3,Diesel,300,R82,0.5,90
+6,4,12,50,B99,Regular,1200,R24,1.0,

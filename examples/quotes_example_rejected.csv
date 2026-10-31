@@ -1,0 +1,2 @@
+VehPower,VehAge,DrivAge,BonusMalus,VehBrand,VehGas,Density,Region,exposure,current_premium,reject_reason
+6,4,12,50,B99,Regular,1200,R24,1.0,,"DrivAge outside [18, 100]"

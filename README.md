@@ -4,8 +4,9 @@ Frequency–severity pricing for French motor third-party liability on the publi
 covers GLMs with proper exposure handling, LightGBM benchmarks, calibration and stability checks, fairness
 review, a pricing-strategy simulation and a rating-engine API.
 
-**Status:** phases 1–6 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency, severity,
-pure premium, benchmarks, holdout comparison, explainability, fairness and pricing-strategy simulation). See
+**Status:** phases 1–7 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency, severity,
+pure premium, benchmarks, holdout comparison, explainability, fairness, pricing-strategy simulation and
+deployment). See
 [docs/phase_plan.md](docs/phase_plan.md).
 
 ## Decision supported
@@ -112,14 +113,46 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 (uv installs it if mis
 
 ```bash
 uv sync                    # install pinned dependencies from uv.lock
-uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium -> benchmarks -> compare -> explain -> simulate (~31 min)
+uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium -> benchmarks -> compare -> explain -> simulate -> package (~32 min)
 uv run pytest              # tests (the full-data leakage test runs when the DB exists)
 uv run ruff check .        # lint
 ```
 
 `make all` / `make test` / `make lint` wrap the same commands where `make` is available. The individual
-steps are `uv run fremtpl2 fetch | build | report | frequency | severity | pure_premium | benchmarks | compare | explain | simulate`. Every threshold is set in
+steps are `uv run fremtpl2 fetch | build | report | frequency | severity | pure_premium | benchmarks | compare | explain | simulate | package`, plus `score --input ... --output ...`. Every threshold is set in
 [configs/config.yaml](configs/config.yaml).
+
+## Rating engine (batch scoring and API)
+
+`uv run fremtpl2 package` (part of `all`) writes `artifacts/tariff.json`, the versioned GLM tariff (D-027). Then:
+
+```bash
+uv run fremtpl2 score --input examples/policies_example.csv --output examples/quotes_example.csv
+```
+
+```bash
+uv run uvicorn fremtpl2_pricing.api.app:app --port 8000
+```
+
+```bash
+curl -s -X POST localhost:8000/quote -H "Content-Type: application/json" -d '{"VehPower": 6, "VehAge": 4, "DrivAge": 35, "BonusMalus": 50, "VehBrand": "B12", "VehGas": "Regular", "Density": 1200, "Region": "R24", "exposure": 1.0}'
+```
+
+Endpoints: `GET /health`, `GET /model-info` (version, factors, valid levels and ranges), `POST /quote`,
+`POST /quote/batch` (up to 1,000 policies). A quote returns the annual frequency, severity, risk and technical
+premium, the premium for the contract term (capped at ±15% of `current_premium` when given), the model version and
+the three largest rating-factor effects. Invalid input is rejected with the reason (HTTP 422); batch files write
+rejected rows to `<output>_rejected.csv`.
+
+Docker (needs `artifacts/tariff.json`; runs as a non-root user):
+
+```bash
+docker build -t fremtpl2-rating .
+```
+
+```bash
+docker run --rm -p 8000:8000 fremtpl2-rating
+```
 
 ## Layout
 

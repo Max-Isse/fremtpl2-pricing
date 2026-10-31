@@ -270,3 +270,21 @@ premium, which is well within one year's noise (SD about 1.5M).
 **D-017 resolved:** the large-loss loading is split into full-year (11.6%) and part-year (48.2%) records.
 **D-012 / D-014 consequence resolved:** short-record cost is charged through a short-period scale by exposure band
 (each model's fitted / priced cost on training), not loaded onto full-year customers.
+
+## D-027 Deployed tariff: the GLM frequency x severity tariff, packaged as one versioned artefact
+**Choice:** `fremtpl2 package` writes `artifacts/tariff.json`, the single input to batch scoring and the API.
+It contains the frequency and severity GLMs, the short-period factors by exposure band, the full-year and
+part-year large-loss loadings, the expense and margin basis and the cap. The model version is
+`<model name>-<first 12 hex characters of the SHA-256 of that content>`, so any change to coefficients or
+assumptions changes the version, and every quote carries it.
+**Why the GLM:** in the phase 6 simulation, the GLM tariff (with a cap) gave the most robust profit, and phases
+4–5 showed LightGBM's premiums are far less stable per policy. D-019 is formally closed in the phase 8 pricing
+report; the scoring code is model-agnostic at the artefact level, so a filable variant (D-026) can be packaged
+the same way.
+**Quote-time cap:** with `current_premium`, the term premium is clipped to ±cap. Unlike the simulation, there is
+no revenue-neutral rescaling at quote time; the book-level effect of the cap must be monitored (monitoring plan).
+**Caveat — short-period factors:** the data-driven factors (e.g. 2.15 for a 3–6-month term) reflect freMTPL2's
+record structure (split records, early terminations). Before real use they need business review against the
+insurer's cancellation and short-term rules; full-year quotes are unaffected.
+**Not built:** the optional Streamlit app (the API and batch scoring cover quoting; strategy comparison lives in
+`reports/strategy_simulation.md`).

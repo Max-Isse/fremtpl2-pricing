@@ -1,0 +1,12 @@
+.venv/
+.git/
+data/
+reports/
+docs/
+tests/
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+artifacts/*
+!artifacts/tariff.json

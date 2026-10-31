@@ -137,6 +137,29 @@ def cmd_simulate(cfg: Config) -> None:
     log.info("wrote %s", write_simulation_report(res, cfg))
 
 
+def cmd_package(cfg: Config) -> None:
+    from fremtpl2_pricing.data.db import connect
+    from fremtpl2_pricing.scoring.engine import TARIFF_FILE, build_tariff, save_tariff
+
+    con = connect(cfg, read_only=True)
+    try:
+        tariff = build_tariff(con, cfg)
+    finally:
+        con.close()
+    log.info("wrote %s (%s)", save_tariff(tariff, cfg.path("artifacts_dir") / TARIFF_FILE), tariff["model_version"])
+
+
+def cmd_score(cfg: Config, input_path: str | None, output_path: str | None) -> None:
+    from pathlib import Path
+
+    from fremtpl2_pricing.scoring.batch import score_file
+    from fremtpl2_pricing.scoring.engine import RatingEngine
+
+    if not input_path or not output_path:
+        raise SystemExit("score needs --input and --output")
+    score_file(RatingEngine.load(cfg.path("artifacts_dir")), Path(input_path), Path(output_path))
+
+
 STEPS = [
     "fetch",
     "build",
@@ -148,14 +171,17 @@ STEPS = [
     "compare",
     "explain",
     "simulate",
+    "package",
 ]
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="fremtpl2", description=__doc__)
-    parser.add_argument("step", choices=[*STEPS, "all"])
+    parser.add_argument("step", choices=[*STEPS, "score", "all"])
     parser.add_argument("--config", default=None, help="path to YAML config")
     parser.add_argument("--force", action="store_true", help="re-download raw data")
+    parser.add_argument("--input", default=None, help="score: policy file (.csv or .parquet)")
+    parser.add_argument("--output", default=None, help="score: output file (.csv or .parquet)")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = load_config(args.config)
@@ -170,6 +196,8 @@ def main(argv: list[str] | None = None) -> None:
         "compare": lambda: cmd_compare(cfg),
         "explain": lambda: cmd_explain(cfg),
         "simulate": lambda: cmd_simulate(cfg),
+        "package": lambda: cmd_package(cfg),
+        "score": lambda: cmd_score(cfg, args.input, args.output),
     }
     for name in STEPS if args.step == "all" else [args.step]:
         steps[name]()
