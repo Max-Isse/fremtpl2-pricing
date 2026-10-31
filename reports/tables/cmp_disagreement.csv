@@ -1,0 +1,2 @@
+comparison,ratio_p05,ratio_p25,ratio_median,ratio_p75,ratio_p95,share_gt_10pct_apart,share_gt_25pct_apart,ratio_median_full_year_records,exposure_weighted_premium_glm,exposure_weighted_premium_lgbm
+LightGBM freq x sev / GLM freq x sev (priced),0.6157465837,0.8075196676,1.050713871,1.473341814,2.117766841,0.8255115831,0.5477834477,0.8572116134,79.15820583,92.29745412

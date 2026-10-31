@@ -14,7 +14,8 @@ Substitute (D-007):
   and the evidence (median IDpol span 2 within a group, combined exposure ≤ 1 year in 94% of groups) says these
   are fragments of one policy. A row-level split would leak. `tests/test_leakage.py` asserts that no group
   straddles the holdout or two folds, on fixtures and (locally) on the full data.
-- **Bootstrap CIs** on deviance and Gini (phase 4).
+- **Bootstrap CIs** on deviance and Gini: grouped bootstrap on the holdout, 200 replicates (phase 4, §5).
+- The holdout was used once, in phase 4, after all modelling and tuning decisions were fixed.
 
 What this cannot show: performance under drift, claims inflation or the portfolio change caused by our own
 re-pricing. Phase 6 simulates the latter under stated assumptions; the rest is a monitoring-plan item.
@@ -258,6 +259,8 @@ consequence, now on cost rather than counts. Phase 6 adds it as an explicit, con
   one-factor model.
 - §2c: the Tweedie GLM tracks in-sample loss cost per level more closely, yet it mis-prices the full-year
   business that is actually quoted.
+- §5: LightGBM's better book-level Gini is partly earned by moving short-record cost into rating factors for
+  segments that are almost never full-year, where its premium cannot be validated.
 
 ## 4. Large losses
 Claims above the training 99.5th percentile (32,162) are capped and the excess (37.8% of capped training losses)
@@ -269,3 +272,61 @@ exceed the cap, against 0.62% on shorter records. The excess is 11.6% of capped 
 over-charge heavily. Phase 6 must split it: about 11.6% on the full-year rate, with the rest going into the
 short-record loading (D-012/D-014). Until then, the pure premium in `reports/pure_premium.md` uses the flat loading
 as specified in D-005.
+
+## 5. Benchmarks and holdout comparison (phase 4)
+Source: `reports/model_comparison.md`. This is the first and only use of the holdout (135,413 policies). All
+modelling and tuning decisions were made on the training folds. CIs are 95% percentile intervals from 200
+grouped bootstrap replicates (whole rating-profile groups resampled, D-006).
+
+**Benchmarks (D-018).**
+- *LightGBM:* Poisson objective with log(exposure) as init_score for frequency, Gamma with claim-count weights
+  for severity, and Tweedie (p = 1.76, as for the GLM) with exposure weights for pure premium. Each is tuned by a
+  random search over 6 configurations with grouped 5-fold CV and early stopping.
+- *Random forest:* Poisson split criterion on claim rate, weighted by exposure, with regularised defaults. It
+  was not tuned and serves as a reference only.
+- *Same treatment as the GLMs:* every tree model sees the same rating factors plus the exposure band as an
+  ordinal *control* feature, pinned at full year when pricing (D-012).
+
+**Results on the holdout.**
+
+| | GLM | LightGBM | Difference (95% CI) |
+|---|---|---|---|
+| Frequency, Poisson deviance explained vs portfolio mean | 5.7% | 7.9% | deviance −0.0055 (−0.0063, −0.0048) |
+| Frequency Gini (priced) | 0.298 | 0.330 | +0.032 (0.023, 0.043) |
+| Severity, Gamma deviance explained vs mean | 3.1% | 3.0% | no difference (CI −0.011, 0.010) |
+| Pure-premium Gini, all records | 0.303 | 0.346 | +0.043 (0.026, 0.065) |
+| Pure-premium Gini, **full-year records** | 0.396 | 0.467 | +0.070 (0.048, 0.096) |
+| Full-year A/E of the priced premium | 1.037 | 1.006 | |
+
+- *Other models:* the random forest falls between the two (frequency deviance explained 6.4%). The
+  BonusMalus-only tariff explains 3.8%.
+- *Frequency is where the trees win.* Severity is equally weak for both, which confirms §2b.
+- *Double lift:* in the decile where LightGBM charges about half the GLM premium, actual losses are 0.54 of the
+  GLM's expectation and 0.98 of LightGBM's. In the decile where LightGBM charges 1.75× the GLM, actual losses
+  are 1.98× the GLM's expectation and 1.13× LightGBM's. LightGBM is closer to the truth where the two disagree.
+- *Calibration:* LightGBM freq × sev is calibrated in total (fitted A/E 1.016) and on full-year records (1.006).
+  The LightGBM Tweedie model is not: fitted A/E is 1.13 (D-020).
+
+**What the comparison does *not* show.** The priced premiums of the two models differ by more than 25% for 55%
+of holdout policies. LightGBM's book-average priced premium is 92.3 against 79.2 for the GLM. Much of that gap
+sits in segments that are almost never observed at full year:
+
+| Segment | Share of records that are part-year | LightGBM / GLM priced premium |
+|---|---|---|
+| VehBrand B12 | 97% | 1.66 |
+| New vehicles (VehAge 0) | 99% | 1.55 |
+| BonusMalus 100–114 | 95% | 1.57 |
+
+- *Extrapolation, not evidence:* for these profiles a "full-year premium" is an extrapolation. The GLM
+  extrapolates multiplicatively; LightGBM pins a feature to a value those profiles barely have. Neither can be
+  validated on this data.
+- *Why LightGBM looks better on the book:* its pro-rata book A/E is 1.35, against 1.57 for the GLM. It moves part
+  of the short-record cost into rating factors, so customers in those segments would pay for duration effects
+  through their risk profile. That improves book-level adequacy but is hard to justify in a filing, and is a
+  fairness question for phase 5.
+- *On full-year records,* where validation is possible, LightGBM is still clearly better at ranking. There its
+  median priced premium is 14% below the GLM's: it charges a minority of high-risk full-year customers much more.
+
+**Status (D-019).** On accuracy and ranking, LightGBM wins clearly for frequency and pure premium. Whether it
+should set prices is not decided here. Phase 5 assesses stability, explainability, monotonicity and proxy risk,
+and phase 6 the commercial effect under rate caps and elasticity.

@@ -30,10 +30,11 @@ log = logging.getLogger(__name__)
 WEIGHT = "n_claims"
 
 
-def load_severity_training(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+def load_severity_training(con: duckdb.DuckDBPyConnection, holdout: bool = False) -> pd.DataFrame:
+    """One row per policy with claims; training split by default, the holdout with holdout=True."""
     df = query_df(
         con,
-        """
+        f"""
         SELECT IDpol, any_value(group_id) AS group_id, any_value(fold) AS fold,
                count(*) AS n_claims, sum(claim_amount) AS amount, sum(claim_amount_raw) AS amount_raw,
                any_value(exposure) AS exposure,
@@ -42,7 +43,7 @@ def load_severity_training(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
                any_value(VehBrand) AS VehBrand, any_value(VehGas) AS VehGas,
                any_value(Density) AS Density, any_value(Region) AS Region
         FROM claims_clean
-        WHERE NOT is_holdout
+        WHERE is_holdout = {"TRUE" if holdout else "FALSE"}
         GROUP BY IDpol
         ORDER BY IDpol
         """,

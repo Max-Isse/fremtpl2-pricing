@@ -81,7 +81,36 @@ def cmd_pure_premium(cfg: Config) -> None:
     log.info("wrote %s", write_pure_premium_report(res, cfg))
 
 
-STEPS = ["fetch", "build", "report", "frequency", "severity", "pure_premium"]
+def cmd_benchmarks(cfg: Config) -> None:
+    from fremtpl2_pricing.data.db import connect
+    from fremtpl2_pricing.models.benchmarks import run_benchmarks, save_benchmarks
+
+    con = connect(cfg, read_only=True)
+    try:
+        res = run_benchmarks(con, cfg)
+    finally:
+        con.close()
+    log.info("wrote %s", save_benchmarks(res, cfg))
+    tables = cfg.path("tables_dir")
+    tables.mkdir(parents=True, exist_ok=True)
+    for name, t in res.tuning.items():
+        t.to_csv(tables / f"tuning_{name}.csv", index=False, float_format="%.10g")
+
+
+def cmd_compare(cfg: Config) -> None:
+    from fremtpl2_pricing.data.db import connect
+    from fremtpl2_pricing.evaluation.compare import run_comparison
+    from fremtpl2_pricing.reporting.model_comparison import write_comparison_report
+
+    con = connect(cfg, read_only=True)
+    try:
+        res = run_comparison(con, cfg)
+    finally:
+        con.close()
+    log.info("wrote %s", write_comparison_report(res, cfg))
+
+
+STEPS = ["fetch", "build", "report", "frequency", "severity", "pure_premium", "benchmarks", "compare"]
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -99,6 +128,8 @@ def main(argv: list[str] | None = None) -> None:
         "frequency": lambda: cmd_frequency(cfg),
         "severity": lambda: cmd_severity(cfg),
         "pure_premium": lambda: cmd_pure_premium(cfg),
+        "benchmarks": lambda: cmd_benchmarks(cfg),
+        "compare": lambda: cmd_compare(cfg),
     }
     for name in STEPS if args.step == "all" else [args.step]:
         steps[name]()

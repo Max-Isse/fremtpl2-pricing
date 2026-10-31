@@ -179,3 +179,39 @@ losses on full-year records but 48.2% on shorter records (large losses are 0.29%
 **Plan:** in phase 6, load the full-year rate with the full-year excess ratio and move the rest into the explicit
 short-record loading, so full-year customers are not charged for large losses that concentrate on short records.
 Both ratios go into config with sensitivity analysis.
+
+## D-018 Tree benchmarks: same information, same exposure treatment, grouped-CV tuning
+**Choice:**
+- *Features:* LightGBM and the random forest see the GLM's rating factors in raw form (DrivAge, VehAge, VehPower,
+  BonusMalus, log Density, VehBrand, VehGas, Region; Area excluded as in D-009) plus the exposure band as an
+  ordinal control feature, pinned at full year when pricing.
+- *Exposure:* frequency uses log(exposure) as init_score; Tweedie uses exposure weights.
+- *Tuning:* LightGBM is tuned by a seeded random search (6 configurations per model, `benchmarks.lgbm` in config)
+  with grouped 5-fold CV and early stopping. The final model is refit on the full training split with the mean
+  best iteration count.
+- *Random forest:* Poisson criterion with regularised defaults, not tuned.
+
+**Why:** this gives a like-for-like comparison. Any gain comes from functional form (interactions,
+non-linearity), not from extra information or a different exposure treatment.
+**Alternatives:** a larger search (diminishing returns: the six frequency configurations span only 0.2334–0.2342 in
+CV deviance); monotone constraints on BonusMalus (a phase 5 candidate); exposure as a free feature (rejected for the
+same reason as D-008).
+
+## D-019 (OPEN, phases 5–6) Which model sets prices
+**Evidence so far:** on the holdout, LightGBM beats the GLM on frequency deviance, on the pure-premium Gini (all
+records +0.043, full-year records +0.070, both CIs above 0) and on the double lift, and is calibrated on full-year
+records (A/E 1.006 vs 1.037).
+**Against it, to be assessed:**
+1. Priced premiums differ by more than 25% for 55% of policies, concentrated in segments that are almost never
+   full-year (B12, new vehicles, BonusMalus 100+), where neither model's full-year premium can be validated.
+2. LightGBM moves short-record cost into rating factors.
+3. Explainability, stability and monotonicity, to be checked in phase 5.
+4. Customer impact under rate caps and elasticity, to be checked in phase 6.
+
+**Decision deferred** to the end of phase 6, when the pricing report weighs accuracy against these.
+
+## D-020 LightGBM Tweedie is not calibrated in total
+**Finding:** LightGBM with the Tweedie objective under-predicts total holdout capped losses by 11% (fitted A/E
+1.127). The Tweedie GLM needed the same base-level correction in phase 3 (D-015). Its ranking is good (Gini 0.329),
+but a level correction would be required before any use. It is kept as a benchmark only; LightGBM frequency ×
+severity is the tree candidate in D-019.

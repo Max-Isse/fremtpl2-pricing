@@ -1,0 +1,11 @@
+target,model,ae_full_year_records,ae_all_records_pro_rata
+frequency,portfolio_mean,0.7636741346,0.9966280609
+frequency,one_factor_BonusMalus,0.8584525336,0.9945027522
+frequency,glm,1.028043255,1.270254982
+frequency,rf,1.028319454,1.129442927
+frequency,lgbm,1.014850378,1.125459495
+pure premium,portfolio_mean,0.6247224452,1.005589645
+pure premium,glm_freq_x_sev,1.037323446,1.573495086
+pure premium,glm_tweedie,1.158419995,1.722731255
+pure premium,lgbm_freq_x_sev,1.005684266,1.34949603
+pure premium,lgbm_tweedie,1.145663064,1.534703819

@@ -4,8 +4,8 @@ Frequency–severity pricing for French motor third-party liability on the publi
 covers GLMs with proper exposure handling, LightGBM benchmarks, calibration and stability checks, fairness
 review, a pricing-strategy simulation and a rating-engine API.
 
-**Status:** phases 1–3 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency, severity and
-pure premium). See
+**Status:** phases 1–4 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency, severity,
+pure premium, benchmarks and holdout comparison). See
 [docs/phase_plan.md](docs/phase_plan.md).
 
 ## Decision supported
@@ -60,19 +60,33 @@ All numbers come from [reports/severity.md](reports/severity.md) and [reports/pu
 - **Tweedie is a cross-check, not the tariff.** It agrees on ranking (correlation 0.97) but isn't balanced and
   under-prices full-year records by 11% (D-015).
 
+## Phase 4 findings (benchmarks on the holdout)
+
+All numbers come from [reports/model_comparison.md](reports/model_comparison.md), with grouped-bootstrap 95% CIs.
+
+- **LightGBM ranks risk better than the GLM.** The pure-premium Gini is 0.346 vs 0.303 (+0.043, CI 0.026–0.065),
+  and 0.467 vs 0.396 on the full-year records that are actually quoted. Frequency deviance explained is 7.9% vs
+  5.7%. The gain comes from frequency; for severity the two are equal.
+- **Where they disagree, LightGBM is closer to actual losses.** In the double-lift deciles at the extremes, the
+  GLM's A/E is 0.54 and 1.98 while LightGBM's is 0.98 and 1.13.
+- **But much of the disagreement can't be validated.** Priced premiums differ by more than 25% for 55% of
+  policies, concentrated in segments that are almost never full-year (B12: 97% part-year; new vehicles: 99%), and
+  LightGBM moves short-record cost into rating factors. Which model sets prices is left open for phases 5–6
+  (D-019).
+
 ## How to run
 
 Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 (uv installs it if missing).
 
 ```bash
 uv sync                    # install pinned dependencies from uv.lock
-uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium (~14 min)
+uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium -> benchmarks -> compare (~20 min)
 uv run pytest              # tests (the full-data leakage test runs when the DB exists)
 uv run ruff check .        # lint
 ```
 
 `make all` / `make test` / `make lint` wrap the same commands where `make` is available. The individual
-steps are `uv run fremtpl2 fetch | build | report | frequency | severity | pure_premium`. Every threshold is set in
+steps are `uv run fremtpl2 fetch | build | report | frequency | severity | pure_premium | benchmarks | compare`. Every threshold is set in
 [configs/config.yaml](configs/config.yaml).
 
 ## Layout

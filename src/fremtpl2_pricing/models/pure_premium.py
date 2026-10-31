@@ -63,11 +63,12 @@ def large_loss_loading(con: duckdb.DuckDBPyConnection) -> float:
     return float(query_df(con, "SELECT large_loss_loading FROM large_loss_summary")["large_loss_loading"].iloc[0])
 
 
-def load_training(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+def load_training(con: duckdb.DuckDBPyConnection, holdout: bool = False) -> pd.DataFrame:
+    """Policy-level rows with claim counts and capped/raw claim cost; training split unless holdout=True."""
     return query_df(
         con,
         f"SELECT {POLICY_COLUMNS}, claim_amount, claim_amount_raw "
-        "FROM policy_clean WHERE NOT is_holdout ORDER BY IDpol",
+        f"FROM policy_clean WHERE is_holdout = {'TRUE' if holdout else 'FALSE'} ORDER BY IDpol",
     )
 
 

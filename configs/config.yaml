@@ -81,6 +81,38 @@ severity:
 pure_premium:
   tweedie_power_sensitivity: [-0.1, 0.1]     # offsets around the power implied by the severity dispersion
 
+benchmarks:
+  numeric: [DrivAge, VehAge, VehPower, BonusMalus, LogDensity]
+  categorical: [VehBrand, VehGas, Region]
+  control: ExposureBand                      # ordinal feature; pinned at full year when pricing (D-012, D-018)
+  lgbm:
+    learning_rate: 0.08
+    max_rounds: 3000
+    early_stopping_rounds: 50
+    n_search: 6                              # random configurations tried per model (grouped 5-fold CV)
+    search_space:
+      num_leaves: [7, 15, 31, 63]
+      min_child_samples: [100, 300, 1000, 3000]
+      reg_lambda: [0.0, 1.0, 10.0]
+      colsample_bytree: [0.6, 0.8, 1.0]
+      subsample: [0.7, 1.0]
+    severity_search_space:                   # far less data: shallower, larger leaves
+      num_leaves: [3, 7, 15]
+      min_child_samples: [100, 300, 1000]
+      reg_lambda: [1.0, 10.0, 50.0]
+      colsample_bytree: [0.6, 1.0]
+      subsample: [0.7, 1.0]
+  rf:                                        # regularised defaults, not tuned (benchmark only)
+    n_estimators: 200
+    min_samples_leaf: 1000
+    max_features: 0.5
+    max_samples: 0.5
+
+evaluation:
+  n_bins: 10
+  n_boot: 200                                # grouped bootstrap replicates on the holdout
+  segments: [DrivAge, BonusMalus, LogDensity, VehAge, VehPower, VehBrand, Region]
+
 exposure_analysis:
   # Exposure band edges in years (right-closed). 1/12 ~ one month.
   exposure_bands: [0.0, 0.0833, 0.25, 0.5, 0.75, 0.999, 1.0]
