@@ -215,3 +215,23 @@ records (A/E 1.006 vs 1.037).
 1.127). The Tweedie GLM needed the same base-level correction in phase 3 (D-015). Its ranking is good (Gini 0.329),
 but a level correction would be required before any use. It is kept as a benchmark only; LightGBM frequency ×
 severity is the tree candidate in D-019.
+
+## D-021 No external socioeconomic data in the fairness review
+**Choice:** the proxy-risk review uses only the dataset (geography's share of premium, dispersion vs experience,
+cost and cross-subsidy of removing it). No INSEE regional statistics were added.
+**Why:** the brief allows external data only if the match to the dataset's pre-2016 region codes can be verified.
+The codes look like INSEE region codes (R11 = Île-de-France, …), but nothing in the dataset documents that, and
+an unverified join would put fabricated precision into a fairness finding.
+**What would change it:** a documented code list from the data's publisher, then median income by region from
+INSEE, to test whether premiums rise with deprivation after controlling for claims experience.
+
+## D-022 (proposal for phase 6) Drop Region from the GLM tariff, keep density with monitoring
+**Evidence:** removing Region costs 0.001 of CV Gini and 0.0003 of CV deviance. Region carries 5% of GLM
+premium variance through 22 levels, several of them thin (R43: 445 exposure-years, relativity CI 0.57–1.24),
+with the largest refit-to-refit swings of any factor (up to 20%). Density carries most of the geographic risk
+signal (removing both costs 0.017 Gini), and its effect is monotone and tracks observed loss cost.
+**Proposal:** phase 6 simulates a GLM tariff without Region as one of the strategies, so the commercial effect
+(who moves, retention, loss ratio) can be weighed before the final recommendation. Alternative: keep Region but
+shrink thin levels towards the book (credibility weighting).
+**Related:** the GLM's non-monotone BonusMalus scale (58–67 above 68–79) would be smoothed in a filed version,
+e.g. by merging the two bands; phase 6 uses the fitted scale and the pricing report flags it.

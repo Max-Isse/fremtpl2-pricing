@@ -253,14 +253,46 @@ consequence, now on cost rather than counts. Phase 6 adds it as an explicit, con
 - *Conclusion:* the frequency × severity route is preferred for the tariff. Phase 4 compares both on the holdout.
 
 ## 3. Better accuracy ≠ better pricing
-*Phases 4–6 build the main evidence. Examples found so far:*
-- §1: the free log(exposure) coefficient has the lowest deviance but gives a non-pro-rata rule.
-- §2b: in-sample F-tests keep five severity factors, but the model is worse out of fold than a
-  one-factor model.
-- §2c: the Tweedie GLM tracks in-sample loss cost per level more closely, yet it mis-prices the full-year
-  business that is actually quoted.
-- §5: LightGBM's better book-level Gini is partly earned by moving short-record cost into rating factors for
-  segments that are almost never full-year, where its premium cannot be validated.
+The brief asks for four demonstrations. Phases 1–5 provide the first two and part of the third; phase 6 adds
+the effect of rate caps and price elasticity.
+
+**(a) Lower deviance can still be miscalibrated in segments** (`reports/model_comparison.md` §5,
+`reports/tables/cmp_segments_frequency.csv`). On the holdout:
+- *Random forest:* its frequency deviance is lower than the GLM's (0.2347 vs 0.2364), yet 17 of 73 rating-factor
+  segments have A/E outside their exact 95% Poisson interval (each factor's levels counted separately). Examples:
+  B12 0.81 (13k of the 71k holdout exposure-years), B11 1.37, 18–20-year-olds 1.34, BonusMalus 115+ 1.58. The GLM
+  has 3 such segments.
+- *LightGBM:* it has the lowest deviance and only 4 miscalibrated segments, but one is the largest segment in the
+  book: drivers at BonusMalus 50 (45k of 71k exposure-years) are over-predicted by 4% (A/E 0.959). Commercially that
+  means overcharging the best customers, the group most likely to leave for a competitor.
+- *Other examples from earlier phases:*
+  - the free log(exposure) coefficient has the lowest deviance but gives a non-pro-rata rule (§1);
+  - in-sample F-tests keep five severity factors, but that model is worse out of fold than a one-factor
+    model (§2b);
+  - the Tweedie GLM tracks in-sample loss cost per level more closely, yet it mis-prices full-year business
+    (§2c).
+
+**(b) Unstable or non-monotonic relativities** (`reports/explainability_fairness.md` §2–3).
+- *The GLM is the less monotone model.* Its BonusMalus scale falls from 2.27 (58–67) to 1.98 (68–79) in the full
+  model and in all five refits. The 58–67 band contains the levels reached after a recent claim from the 50 floor.
+  A regulator or customer would ask why a worse bonus-malus coefficient costs less. LightGBM's marginal
+  BonusMalus effect is monotone in the full model (a reversal appears in at least one of the five refits).
+- *Where the GLM's relativities move most:* thin levels such as Region (up to 20% between refits), VehBrand
+  (17%) and the 18–20 age band (14%).
+- *LightGBM is worse on what customers feel.* Its level-average SHAP effects are at least as stable as the
+  GLM's coefficients, but each policy's premium is not. Across five refits the median policy's LightGBM
+  premium moves 20% (GLM 7.5%), and 90% of policies move by more than 10% (GLM 26%) (§6).
+- *The two models disagree on what drives risk.* The GLM charges 18–20-year-olds 1.40× the reference age, while
+  LightGBM attributes almost all of that to their BonusMalus (SHAP relativity 0.97 for the age band). VehBrand
+  carries 9% of GLM premium variance but almost none in LightGBM. Same data, different stories: the GLM's story is
+  what a pricing committee can file and defend.
+
+**(c) Premium moves that cause adverse selection or lose profitable customers** (§5, phase 6).
+- *How different the prices are:* LightGBM and GLM premiums differ by more than 25% for 55% of holdout policies.
+- *Where the gaps sit:* in segments that are almost never full-year, where neither premium can be validated.
+- *Phase 6:* simulates which customers each tariff would gain and lose under an assumed price elasticity.
+
+**(d) Behaviour under rate caps and elasticity:** phase 6.
 
 ## 4. Large losses
 Claims above the training 99.5th percentile (32,162) are capped and the excess (37.8% of capped training losses)
@@ -330,3 +362,64 @@ sits in segments that are almost never observed at full year:
 **Status (D-019).** On accuracy and ranking, LightGBM wins clearly for frequency and pure premium. Whether it
 should set prices is not decided here. Phase 5 assesses stability, explainability, monotonicity and proxy risk,
 and phase 6 the commercial effect under rate caps and elasticity.
+
+## 6. Explainability, stability and fairness (phase 5)
+Source: `reports/explainability_fairness.md` (training split only; no holdout).
+
+**Method.**
+- *SHAP:* LightGBM's exact TreeSHAP (`pred_contrib`) gives additive contributions on the log-rate scale, the same
+  scale as GLM coefficients. Averaging a feature's SHAP value within each GLM level and dividing by the
+  reference level gives a "SHAP relativity". It is a marginal attribution, with interactions shared out between
+  features, not a tariff cell.
+- *Refits:* both frequency models are refitted on each of the five grouped-CV training sets (80% of the training
+  split). This measures the spread of level effects and of each policy's own priced frequency.
+
+**Side by side.**
+- *Where they agree:* BonusMalus dominates both models (64% of GLM log-premium variance, 58% of LightGBM's), and
+  above BonusMalus 80 the two scales agree within a few percent. VehAge, density, fuel and vehicle power look
+  similar too.
+- *Where they disagree:*
+  - Young drivers: the GLM charges 18–20-year-olds 1.40 where LightGBM's marginal age effect is 0.97, because
+    LightGBM explains them through their BonusMalus.
+  - VehBrand: the GLM gives it a 9% share of premium variance; LightGBM gives it about 0.
+  - BonusMalus 58–67: GLM 2.27, SHAP 1.85.
+
+**Stability.**
+- *Level effects:* the most volatile levels belong to thin factor levels in both models (Region, VehBrand, young
+  drivers). LightGBM's largest level spread across refits is 14% and the GLM's 20%.
+- *Policy-level premiums:* what an individual customer would feel is the change in their own priced frequency between refits.
+  The picture reverses here:
+
+  | | Median max/min − 1 | 95th percentile | Policies moving >10% |
+  |---|---|---|---|
+  | GLM | 7.5% | 15% | 26% |
+  | LightGBM | 20% | 41% | 90% |
+
+  LightGBM's level averages are stable because they average over thousands of policies. Each policy's tree
+  path, however, changes with the training sample. A tariff built on it would move most customers' premiums
+  by double digits at every refresh, with nothing about their risk having changed. That is a problem for
+  customers, for complaint volumes and for rate filings, and phase 6's rate caps have to absorb it.
+
+**Monotonicity.** The GLM's BonusMalus scale has a reversal (58–67 above 68–79) in every refit. A filed tariff
+would merge or smooth these bands, at a small cost in fit. LightGBM's marginal effect is monotone in the full
+model; monotone constraints are available if it is used.
+
+**Fairness: geography as a proxy (D-021, D-022).**
+- *What the data can't test:* there are no protected attributes, so discrimination against a protected group
+  can't be tested. Region and density are the plausible socioeconomic proxies.
+- *How much of the premium is geography:* 13.5% of log-premium variance for the GLM (density 8.3%, Region 5.2%) and
+  10.4% for LightGBM.
+- *Does it follow experience?*
+  - By density band, the GLM premium index rises from 0.69 (most rural) to 1.32 (densest), and LightGBM's from
+    0.66 to 1.37. Observed loss cost, including large losses, rises from 0.58 to 1.39, with noise in between.
+  - By region, premiums correlate with observed loss cost at 0.54 (GLM) and 0.64 (LightGBM). They are compressed
+    relative to the noisy regional experience (premium index 0.62–1.29 vs observed 0.37–1.73).
+- *What removing it costs (grouped CV):*
+  - Region alone: Gini −0.001 and deviance +0.0003. Region adds 22 levels, some very thin, for almost no
+    out-of-sample accuracy.
+  - Region and density: Gini −0.017. Density is the factor that carries real risk information.
+- *Who pays if geography is removed:* refitting without both and rebalancing to the same book premium moves
+  52% of exposure by more than 10%. The most rural band pays 34% more and the densest 15% less, a sizeable
+  cross-subsidy from rural to urban drivers.
+- *Implication:* Region is a candidate to drop, or to shrink by credibility weighting, on fairness and
+  explainability grounds at negligible cost. Density is justified by risk but should be monitored as a proxy.

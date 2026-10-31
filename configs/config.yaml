@@ -113,6 +113,12 @@ evaluation:
   n_boot: 200                                # grouped bootstrap replicates on the holdout
   segments: [DrivAge, BonusMalus, LogDensity, VehAge, VehPower, VehBrand, Region]
 
+explain:
+  shap_sample: 50000                         # training rows used for SHAP and fold-stability attributions
+  factors: [DrivAge, VehAge, VehPower, BonusMalus, LogDensity, VehBrand, VehGas, Region]
+  monotone_increasing: [BonusMalus, LogDensity]   # factors a filed tariff would be expected to rate monotonically
+  geography: [Region, LogDensity]            # potential socioeconomic proxies (fairness review)
+
 exposure_analysis:
   # Exposure band edges in years (right-closed). 1/12 ~ one month.
   exposure_bands: [0.0, 0.0833, 0.25, 0.5, 0.75, 0.999, 1.0]

@@ -1,0 +1,25 @@
+model,factor,adjacent_decreases,largest_decrease
+glm (full training),BonusMalus,1,0.2897811572
+glm (full training),LogDensity,1,0.001274668283
+lgbm SHAP (full training),BonusMalus,0,0
+lgbm SHAP (full training),LogDensity,0,0
+glm fold 0,BonusMalus,1,0.3066819584
+glm fold 0,LogDensity,0,0
+glm fold 1,BonusMalus,1,0.3101882491
+glm fold 1,LogDensity,0,0
+glm fold 2,BonusMalus,1,0.2675733351
+glm fold 2,LogDensity,0,0
+glm fold 3,BonusMalus,1,0.226889696
+glm fold 3,LogDensity,0,0
+glm fold 4,BonusMalus,1,0.3376919662
+glm fold 4,LogDensity,1,0.04975722713
+lgbm fold 0,BonusMalus,1,0.006865888241
+lgbm fold 0,LogDensity,0,0
+lgbm fold 1,BonusMalus,0,0
+lgbm fold 1,LogDensity,0,0
+lgbm fold 2,BonusMalus,1,0.01829494996
+lgbm fold 2,LogDensity,0,0
+lgbm fold 3,BonusMalus,0,0
+lgbm fold 3,LogDensity,0,0
+lgbm fold 4,BonusMalus,1,0.03427752172
+lgbm fold 4,LogDensity,0,0

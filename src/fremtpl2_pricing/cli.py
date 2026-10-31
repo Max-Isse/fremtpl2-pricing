@@ -110,7 +110,21 @@ def cmd_compare(cfg: Config) -> None:
     log.info("wrote %s", write_comparison_report(res, cfg))
 
 
-STEPS = ["fetch", "build", "report", "frequency", "severity", "pure_premium", "benchmarks", "compare"]
+def cmd_explain(cfg: Config) -> None:
+    from fremtpl2_pricing.analysis.explain import run_explain
+    from fremtpl2_pricing.analysis.fairness import run_fairness
+    from fremtpl2_pricing.data.db import connect
+    from fremtpl2_pricing.reporting.explain_fairness import write_explain_fairness_report
+
+    con = connect(cfg, read_only=True)
+    try:
+        ex, fa = run_explain(con, cfg), run_fairness(con, cfg)
+    finally:
+        con.close()
+    log.info("wrote %s", write_explain_fairness_report(ex, fa, cfg))
+
+
+STEPS = ["fetch", "build", "report", "frequency", "severity", "pure_premium", "benchmarks", "compare", "explain"]
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -130,6 +144,7 @@ def main(argv: list[str] | None = None) -> None:
         "pure_premium": lambda: cmd_pure_premium(cfg),
         "benchmarks": lambda: cmd_benchmarks(cfg),
         "compare": lambda: cmd_compare(cfg),
+        "explain": lambda: cmd_explain(cfg),
     }
     for name in STEPS if args.step == "all" else [args.step]:
         steps[name]()

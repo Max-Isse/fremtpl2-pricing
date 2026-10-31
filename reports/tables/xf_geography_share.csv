@@ -1,0 +1,10 @@
+factor,glm_share_of_log_premium_variance,lgbm_share_of_log_premium_variance,geography
+BonusMalus,0.6414800269,0.5834996129,False
+VehBrand,0.09251258191,-0.001110945679,False
+LogDensity,0.08308636646,0.0585016653,True
+VehAge,0.08021367295,0.0881110249,False
+DrivAge,0.05406959322,0.03921750483,False
+Region,0.05186547441,0.04466665729,True
+VehGas,0.01623076849,0.01464287547,False
+VehPower,0.005344141461,0.008520166532,False
+AgeMalus,-0.02480262583,,False

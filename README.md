@@ -4,8 +4,8 @@ Frequency–severity pricing for French motor third-party liability on the publi
 covers GLMs with proper exposure handling, LightGBM benchmarks, calibration and stability checks, fairness
 review, a pricing-strategy simulation and a rating-engine API.
 
-**Status:** phases 1–4 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency, severity,
-pure premium, benchmarks and holdout comparison). See
+**Status:** phases 1–5 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency, severity,
+pure premium, benchmarks, holdout comparison, explainability and fairness). See
 [docs/phase_plan.md](docs/phase_plan.md).
 
 ## Decision supported
@@ -74,19 +74,35 @@ All numbers come from [reports/model_comparison.md](reports/model_comparison.md)
   LightGBM moves short-record cost into rating factors. Which model sets prices is left open for phases 5–6
   (D-019).
 
+## Phase 5 findings (explainability, stability, fairness)
+
+All numbers come from [reports/explainability_fairness.md](reports/explainability_fairness.md) (training split only).
+
+- **The two models agree on what matters most and disagree on the rest.** BonusMalus drives about 60% of premium
+  variation in both. The GLM charges 18–20-year-olds 1.40× where LightGBM attributes their risk to BonusMalus
+  (SHAP 0.97), and VehBrand matters to the GLM but hardly at all to LightGBM.
+- **Better deviance, worse segments.** The random forest beats the GLM on holdout deviance yet miscalibrates 17 of
+  73 segments, against 3 for the GLM. LightGBM over-predicts the largest segment, bonus-50 drivers, by 4%.
+- **Stability and monotonicity.** The GLM's BonusMalus scale is non-monotone (58–67 above 68–79) in every refit.
+  Individual premiums are far less stable for LightGBM: across five refits on 80% subsamples, the median
+  policy's premium moves 20% (GLM 7.5%), and 90% of policies move by more than 10% (GLM 26%).
+- **Geography.** It drives 13.5% of GLM premium variation. Dropping Region costs almost nothing (CV Gini −0.001);
+  dropping density as well costs 0.017 Gini and moves 52% of exposure by more than 10%, the most rural band paying
+  34% more. Proposal: drop Region, keep density with monitoring (D-022).
+
 ## How to run
 
 Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 (uv installs it if missing).
 
 ```bash
 uv sync                    # install pinned dependencies from uv.lock
-uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium -> benchmarks -> compare (~20 min)
+uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium -> benchmarks -> compare -> explain (~30 min)
 uv run pytest              # tests (the full-data leakage test runs when the DB exists)
 uv run ruff check .        # lint
 ```
 
 `make all` / `make test` / `make lint` wrap the same commands where `make` is available. The individual
-steps are `uv run fremtpl2 fetch | build | report | frequency | severity | pure_premium | benchmarks | compare`. Every threshold is set in
+steps are `uv run fremtpl2 fetch | build | report | frequency | severity | pure_premium | benchmarks | compare | explain`. Every threshold is set in
 [configs/config.yaml](configs/config.yaml).
 
 ## Layout
