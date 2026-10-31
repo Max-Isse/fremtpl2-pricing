@@ -82,6 +82,7 @@ def _simulated_db(tmp_path: Path) -> tuple[Config, duckdb.DuckDBPyConnection, pd
     claims = sev.loc[sev.index.repeat(sev["claim_count"])].copy()
     claims["claim_amount"] = claims["avg_severity"]
     claims["claim_amount_raw"] = claims["avg_severity"]
+    claims["claim_id"] = np.arange(len(claims))
     pol = pol.merge(sev[["IDpol", "amount"]], on="IDpol", how="left").fillna({"amount": 0.0})
     pol["claim_amount"] = pol["amount"]
     pol["claim_amount_raw"] = pol["amount"]
