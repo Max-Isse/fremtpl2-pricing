@@ -124,7 +124,31 @@ def cmd_explain(cfg: Config) -> None:
     log.info("wrote %s", write_explain_fairness_report(ex, fa, cfg))
 
 
-STEPS = ["fetch", "build", "report", "frequency", "severity", "pure_premium", "benchmarks", "compare", "explain"]
+def cmd_simulate(cfg: Config) -> None:
+    from fremtpl2_pricing.data.db import connect
+    from fremtpl2_pricing.pricing.simulation import run_simulation
+    from fremtpl2_pricing.reporting.strategy_simulation import write_simulation_report
+
+    con = connect(cfg, read_only=True)
+    try:
+        res = run_simulation(con, cfg)
+    finally:
+        con.close()
+    log.info("wrote %s", write_simulation_report(res, cfg))
+
+
+STEPS = [
+    "fetch",
+    "build",
+    "report",
+    "frequency",
+    "severity",
+    "pure_premium",
+    "benchmarks",
+    "compare",
+    "explain",
+    "simulate",
+]
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -145,6 +169,7 @@ def main(argv: list[str] | None = None) -> None:
         "benchmarks": lambda: cmd_benchmarks(cfg),
         "compare": lambda: cmd_compare(cfg),
         "explain": lambda: cmd_explain(cfg),
+        "simulate": lambda: cmd_simulate(cfg),
     }
     for name in STEPS if args.step == "all" else [args.step]:
         steps[name]()

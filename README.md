@@ -4,8 +4,8 @@ Frequency–severity pricing for French motor third-party liability on the publi
 covers GLMs with proper exposure handling, LightGBM benchmarks, calibration and stability checks, fairness
 review, a pricing-strategy simulation and a rating-engine API.
 
-**Status:** phases 1–5 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency, severity,
-pure premium, benchmarks, holdout comparison, explainability and fairness). See
+**Status:** phases 1–6 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency, severity,
+pure premium, benchmarks, holdout comparison, explainability, fairness and pricing-strategy simulation). See
 [docs/phase_plan.md](docs/phase_plan.md).
 
 ## Decision supported
@@ -90,19 +90,35 @@ All numbers come from [reports/explainability_fairness.md](reports/explainabilit
   dropping density as well costs 0.017 Gini and moves 52% of exposure by more than 10%, the most rural band paying
   34% more. Proposal: drop Region, keep density with monitoring (D-022).
 
+## Phase 6 findings (pricing strategy simulation, SYNTHETIC, assumed elasticity)
+
+All numbers come from [reports/strategy_simulation.md](reports/strategy_simulation.md). They are estimates under
+stated assumptions, not achievable results.
+
+- **Risk rating pays; flat rates invite adverse selection.** A flat rate keeps 95% of the riskiest decile and 15% of
+  the safest, and loses about 1.1M on a ~12M book. The BonusMalus-only status quo also loses money (−0.17M).
+- **Caps change the ranking.** Uncapped, the GLM and LightGBM move the average premium by 27–35%, and lapses eat the
+  gain. A GLM capped at ±15% earns the most on actual holdout losses (0.26M, loss ratio 0.73), and does so under all
+  three "truth" assumptions. LightGBM's better ranking does not turn into profit (0.05M uncapped, 0.04M capped).
+- **A filable GLM costs little.** Without Region and with a monotone malus scale (D-026) it earns 0.19M: about 0.5%
+  of premium below the capped GLM, well within one year's noise (profit SD about 1.5M; 99.5% VaR about 40% of
+  premium).
+- **Assumptions decide the level.** Doubling elasticity, or running expenses 5 points above the price basis, makes
+  every strategy lose money. The ranking holds.
+
 ## How to run
 
 Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 (uv installs it if missing).
 
 ```bash
 uv sync                    # install pinned dependencies from uv.lock
-uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium -> benchmarks -> compare -> explain (~30 min)
+uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium -> benchmarks -> compare -> explain -> simulate (~31 min)
 uv run pytest              # tests (the full-data leakage test runs when the DB exists)
 uv run ruff check .        # lint
 ```
 
 `make all` / `make test` / `make lint` wrap the same commands where `make` is available. The individual
-steps are `uv run fremtpl2 fetch | build | report | frequency | severity | pure_premium | benchmarks | compare | explain`. Every threshold is set in
+steps are `uv run fremtpl2 fetch | build | report | frequency | severity | pure_premium | benchmarks | compare | explain | simulate`. Every threshold is set in
 [configs/config.yaml](configs/config.yaml).
 
 ## Layout

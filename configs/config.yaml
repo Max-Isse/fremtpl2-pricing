@@ -119,6 +119,30 @@ explain:
   monotone_increasing: [BonusMalus, LogDensity]   # factors a filed tariff would be expected to rate monotonically
   geography: [Region, LogDensity]            # potential socioeconomic proxies (fairness review)
 
+pricing:
+  # ---- ASSUMPTIONS (no price, lapse or expense data in freMTPL2; every value is varied in sensitivity) ----
+  expense_ratio: 0.25                        # ASSUMPTION: expenses as a share of premium
+  profit_margin: 0.05                        # ASSUMPTION: target margin as a share of premium
+  current_tariff: one_factor_BonusMalus      # status quo the book is renewing from (D-023)
+  reference_truth: blend                     # blend | glm | lgbm: "true" cost and competitor price (D-024)
+  cap: 0.15                                  # max premium change vs current for capped strategies
+  retention:                                 # ASSUMED logistic price-elasticity model, NOT fitted (D-025)
+    base_rate: 0.85                          # renewal probability at no price change and market parity
+    beta_change: -3.0                        # per unit log(new premium / current premium)
+    beta_market: -4.0                        # per unit log(new premium / competitor premium)
+  filable_glm:                               # strategy of own design (D-026)
+    drop_factors: [Region]
+    bonusmalus_bands: [50, 51, 58, 80, 95, 100, 115]   # 58-67 and 68-79 merged: monotone malus scale
+  monte_carlo:
+    runs: 5000
+    systemic_sd: 0.05                        # ASSUMPTION: run-level frequency shock (trend / weather), lognormal sd
+    seed_offset: 40
+  sensitivity:
+    elasticity_scale: [0.5, 1.0, 2.0]
+    expense_ratio: [0.20, 0.25, 0.30]          # expenses actually incurred vs the 25% priced in
+    cap: [0.05, 0.10, 0.15, 0.25]
+    reference_truth: [blend, glm, lgbm]
+
 exposure_analysis:
   # Exposure band edges in years (right-closed). 1/12 ~ one month.
   exposure_bands: [0.0, 0.0833, 0.25, 0.5, 0.75, 0.999, 1.0]

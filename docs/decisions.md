@@ -235,3 +235,38 @@ signal (removing both costs 0.017 Gini), and its effect is monotone and tracks o
 shrink thin levels towards the book (credibility weighting).
 **Related:** the GLM's non-monotone BonusMalus scale (58–67 above 68–79) would be smoothed in a filed version,
 e.g. by merging the two bands; phase 6 uses the fitted scale and the pricing report flags it.
+
+## D-023 Simulation basis: revenue-neutral strategies on the holdout book, renewing from a BonusMalus-only tariff
+**Choice:** each strategy is scaled to collect the same total premium from the full holdout book (true cost /
+(1 − expenses − margin)). The "current" premium customers renew from is a BonusMalus-only tariff scaled to the
+same total.
+**Why:** revenue neutrality isolates the effect of *how* premium is spread, which is what rating-structure choice
+changes. A bonus-malus-only tariff is the simplest credible status quo for French MTPL, and it is the phase 2
+baseline.
+**Alternatives:** the flat rate as status quo (exaggerates every change); each strategy at its own level
+(confounds structure with rate level).
+
+## D-024 "True" cost = calibrated blend of GLM and LightGBM; realised losses as the model-free check
+**Choice:** true expected cost is the geometric mean of the two models' fitted costs, calibrated to actual total
+holdout losses. Competitors charge that cost / (1 − 30%). Results are reported on expected (model) cost *and* on
+actual holdout losses weighted by retention.
+**Why:** using either model as truth would make that model win by construction. Truth = GLM and truth = LightGBM
+are run as sensitivities.
+
+## D-025 Retention: an assumed logistic elasticity model (not fitted)
+**Choice:** logit P(renew) = logit(0.85) − 3·log(new/current) − 4·log(new/competitor), scaled ×0.5 and ×2 in
+sensitivity.
+**Why:** there is no price or lapse data. The form is the standard renewal-elasticity shape: customers react both
+to their own price change and to the market price. The values are plausible orders of magnitude, not estimates.
+Any real use needs a price test (randomised price changes on a sample of renewals) to estimate them.
+
+## D-026 Strategy of own design: a filable GLM with a ±15% cap
+**Choice:** the GLM refitted without Region (D-022), with BonusMalus bands 58–67 and 68–79 merged so the malus
+scale is monotone, priced with its own short-period scale, and changes capped at ±15% of the current premium.
+**Why:** this answers the phase 5 objections (thin, unstable geography levels; a non-monotone malus scale) while
+keeping the GLM's explainability. **Cost:** realised profit 0.19M vs 0.26M for the capped full GLM, about 0.5% of
+premium, which is well within one year's noise (SD about 1.5M).
+
+**D-017 resolved:** the large-loss loading is split into full-year (11.6%) and part-year (48.2%) records.
+**D-012 / D-014 consequence resolved:** short-record cost is charged through a short-period scale by exposure band
+(each model's fitted / priced cost on training), not loaded onto full-year customers.

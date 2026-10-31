@@ -287,12 +287,16 @@ the effect of rate caps and price elasticity.
   carries 9% of GLM premium variance but almost none in LightGBM. Same data, different stories: the GLM's story is
   what a pricing committee can file and defend.
 
-**(c) Premium moves that cause adverse selection or lose profitable customers** (§5, phase 6).
+**(c) Premium moves that cause adverse selection or lose profitable customers** (§5, §7).
 - *How different the prices are:* LightGBM and GLM premiums differ by more than 25% for 55% of holdout policies.
 - *Where the gaps sit:* in segments that are almost never full-year, where neither premium can be validated.
-- *Phase 6:* simulates which customers each tariff would gain and lose under an assumed price elasticity.
+- *Phase 6 (§7):* a flat rate keeps 95% of the riskiest decile and 15% of the safest. Uncapped GLM and LightGBM
+  tariffs move the average customer's premium by 27% and 35%.
 
-**(d) Behaviour under rate caps and elasticity:** phase 6.
+**(d) Behaviour under rate caps and elasticity** (§7). Under the assumed elasticity, LightGBM's holdout ranking
+advantage does not turn into profit: its realised profit is 0.05M uncapped and 0.04M capped, against 0.26M for
+the capped GLM. Capping changes the ranking of strategies, and the capped GLM stays best under every truth
+assumption tested.
 
 ## 4. Large losses
 Claims above the training 99.5th percentile (32,162) are capped and the excess (37.8% of capped training losses)
@@ -423,3 +427,90 @@ model; monotone constraints are available if it is used.
   cross-subsidy from rural to urban drivers.
 - *Implication:* Region is a candidate to drop, or to shrink by credibility weighting, on fairness and
   explainability grounds at negligible cost. Density is justified by risk but should be monitored as a proxy.
+
+## 7. Pricing strategy simulation (phase 6)
+Source: `reports/strategy_simulation.md`. Everything that depends on customer behaviour is **SYNTHETIC** and rests
+on **assumed** parameters (`pricing` in `configs/config.yaml`). No price, lapse or competitor data exist for
+freMTPL2, so retention is a labelled assumption, not an estimate. All monetary results are estimates under these
+assumptions.
+
+**Set-up.**
+- *Book:* the 135,413 holdout policies renew for one year with their observed exposure.
+- *Technical premium:* true cost / (1 − expense ratio 25% − margin 5%).
+- *Comparison basis:* every strategy collects the same total from the full book, so strategies differ only in
+  how they spread it (D-023).
+- *Strategies:*
+  - flat rate;
+  - the current tariff (BonusMalus only, D-023);
+  - GLM;
+  - LightGBM;
+  - GLM and LightGBM with changes capped at ±15% of the current premium;
+  - my own design: a *filable GLM* (Region dropped, the two non-monotone BonusMalus bands merged, ±15% cap; D-026).
+
+**Duration terms resolve D-012, D-014 and D-017.**
+- *Short-period scale:* premium = full-year rate × exposure × a short-period factor by exposure band. The factor
+  is each model's own fitted / full-year-priced cost on the training split: for the GLM, 4.75 for records under a
+  month down to 1.48 for 0.75–1 year. LightGBM needs smaller factors (3.32 to 1.19) because its full-year rate
+  already carries part of the duration effect.
+- *Large-loss loading:* 11.6% on full-year records and 48.2% on part-year records, pooled because per-band
+  loadings were set by a handful of huge claims.
+- *Effect:* together these fund the short-record cost without charging it to full-year customers.
+
+**"Truth" and competitors (D-024).**
+- *Truth:* expected cost per policy is the geometric mean of the GLM and LightGBM fitted costs, calibrated to
+  actual total holdout losses. The competitor premium is that cost / (1 − 30%).
+- *Two profit views:*
+  - *Expected:* model-based cost.
+  - *Realised:* actual holdout losses of each policy weighted by its retention probability. This is model-free
+    and unbiased under the retention assumption, but noisy.
+- *Robustness:* truth = GLM and truth = LightGBM are run as sensitivities.
+
+**Retention (D-025, ASSUMED).** logit P(renew) = logit(0.85) − 3·log(new/current) − 4·log(new/competitor).
+
+**Results (base case).**
+
+| Strategy | Retention (exposure) | Loss ratio, expected | Loss ratio, realised | Realised profit | P(loss), Monte Carlo |
+|---|---|---|---|---|---|
+| flat | 51% | 0.89 | 0.88 | −1.10M | 0.81 |
+| current | 78% | 0.77 | 0.76 | −0.17M | 0.48 |
+| GLM | 80% | 0.72 | 0.74 | 0.10M | 0.34 |
+| LightGBM | 80% | 0.79 | 0.74 | 0.05M | 0.52 |
+| GLM capped ±15% | 80% | 0.73 | 0.73 | **0.26M** | 0.36 |
+| LightGBM capped ±15% | 81% | 0.74 | 0.75 | 0.04M | 0.40 |
+| filable GLM capped ±15% | 80% | 0.73 | 0.73 | 0.19M | 0.38 |
+
+The total premium in play is about 12M a year.
+
+**What it shows.**
+1. *Adverse selection is real and large.* A flat rate keeps 95% of the riskiest decile and 15% of the safest
+   (retained risk mix 1.36× the book), and loses 1.1M. The BonusMalus-only status quo also loses money.
+2. *Rate caps change the ranking (brief §3d).*
+   - Uncapped, the GLM and LightGBM move the average customer's premium by 27% and 35%. 23% and 19% of customers
+     face increases above 25%, and change-driven lapses eat the gain from better risk differentiation.
+   - Capping at ±15% (average change 12%) raises the GLM's realised profit from 0.10M to 0.26M.
+   - LightGBM gains nothing from the cap: its ranking advantage (phase 4) does not survive the price constraints
+     and elasticity. Its expected profit under the blended truth is even negative, partly because its premiums are
+     more dispersed than the blend.
+3. *The cap level matters.* Realised profit of the capped GLM rises with the cap: ±5% 0.03M, ±10% 0.18M,
+   ±15% 0.26M, ±25% 0.30M. Uncapped, it is 0.10M. A moderate cap (15–25%) is best under these assumptions.
+4. *Robust to the truth assumption.*
+   - The capped GLM has the highest realised profit under all three truths: blend 0.26M, GLM-truth 0.55M,
+     LightGBM-truth −0.06M.
+   - When competitors price like LightGBM, every strategy loses money, the capped GLM least.
+   - On *expected* profit the uncapped GLM is highest under the blend (0.41M vs 0.23M capped). The two views
+     disagree on cap vs no cap, but not on GLM vs LightGBM.
+5. *Elasticity and expenses dominate the level of profit, not the ranking.*
+   - Halving elasticity lifts every strategy. Doubling it makes all of them lose money, the capped GLM least
+     (−0.08M).
+   - Actual expenses at 30% instead of the priced 25% turn every strategy negative (capped GLM −0.36M); at 20%
+     the capped GLM earns 0.87M.
+6. *One year is noisy.* The Monte Carlo profit SD is about 1.5M (12% of premium). The 99.5% one-year VaR is about
+   4.8M for the GLM strategies (40% of premium), driven by very large claims on a small book. The differences
+   between the GLM strategies (0.1–0.2M) are far smaller than one year's noise, so the choice has to rest on
+   expected value, robustness and structural arguments, not on a single year's result.
+
+**Limitations.**
+- Retention elasticities and the competitor model are assumptions.
+- One renewal year, no new business, retention treated as expected rather than simulated.
+- Claim counts are Poisson with a systemic shock; no parameter risk on the models themselves.
+- The holdout informs the final model choice a second time (after phase 4); no parameters are tuned on it here.

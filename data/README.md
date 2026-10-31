@@ -26,7 +26,12 @@ claim counts and Gamma claim amounts with known
 parameters (to check that estimators and tests recover the truth); all exist only to test code
 (CI cannot download the full data on every run) and are never written to `data/`.
 
-Phase 6 will add a SYNTHETIC Monte Carlo of claims on the retained book; it will be listed here when added.
+**SYNTHETIC simulation outputs (phase 6).** `src/fremtpl2_pricing/pricing/simulation.py` simulates customer
+retention under an *assumed* price-elasticity model and runs a 5,000-run Monte Carlo of claim counts (Poisson
+with a systemic shock) and severities (resampled from real training claim amounts). Reason: freMTPL2 has no
+price, lapse or competitor data, so strategy profitability can only be estimated by simulation. Outputs are
+named `SYNTHETIC_*` in `reports/tables/` and `reports/figures/` and are never written to `data/`. Assumptions:
+`pricing` in `configs/config.yaml` (decisions D-023 to D-026).
 
 ## Optional external data
 
