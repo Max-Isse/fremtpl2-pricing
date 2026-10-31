@@ -64,6 +64,23 @@ frequency:
   residual_seed_offset: 1                    # added to the global seed for randomised quantile residuals
   residual_sample: 50000                     # residuals plotted on a sample to keep figures light
 
+severity:
+  # Coarser bands than frequency: ~25x fewer observations and far noisier outcomes (D-013).
+  bands:
+    DrivAge: [18, 26, 41, 61]
+    VehAge: [0, 3, 10]
+    VehPower: [4, 6, 8]
+    BonusMalus: [50, 51, 80, 100]
+    LogDensity: [0, 4, 6, 8]
+  start_factors: [DrivAge, VehAge, VehPower, BonusMalus, LogDensity, VehBrand, VehGas, Region, AgeMalus]
+  controls: [ExposureBand]                   # fitted, pinned at full year when pricing (D-014)
+  significance: 0.05                         # backward elimination: drop factors with quasi-F p above this
+  variance_bins: 20                          # bins of fitted mean for the variance-vs-mean check
+  flat_amount_min_share: 0.02                # report claim amounts that recur in at least this share of claims
+
+pure_premium:
+  tweedie_power_sensitivity: [-0.1, 0.1]     # offsets around the power implied by the severity dispersion
+
 exposure_analysis:
   # Exposure band edges in years (right-closed). 1/12 ~ one month.
   exposure_bands: [0.0, 0.0833, 0.25, 0.5, 0.75, 0.999, 1.0]

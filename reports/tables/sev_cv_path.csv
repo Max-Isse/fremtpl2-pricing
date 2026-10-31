@@ -1,0 +1,12 @@
+n_factors,factors,cv_mean_deviance,cv_se,has_controls,diff_vs_best,paired_se_vs_best,folds_worse_than_best,best,chosen_one_se
+9,"DrivAge, VehAge, VehPower, BonusMalus, LogDensity, VehBrand, VehGas, Region, AgeMalus, ExposureBand",1.085478313,0.02386005549,True,0.005855329133,0.003916594839,4,False,False
+8,"DrivAge, VehAge, VehPower, BonusMalus, LogDensity, VehGas, Region, AgeMalus, ExposureBand",1.083323075,0.02401683645,True,0.003700091454,0.003767370893,3,False,False
+7,"DrivAge, VehAge, VehPower, BonusMalus, LogDensity, VehGas, Region, ExposureBand",1.082033172,0.02390765668,True,0.002410188697,0.003498140791,3,False,False
+6,"DrivAge, VehAge, VehPower, BonusMalus, VehGas, Region, ExposureBand",1.081675217,0.02414674191,True,0.002052233341,0.003438449117,3,False,False
+5,"DrivAge, VehAge, VehPower, BonusMalus, Region, ExposureBand",1.081376587,0.02416313271,True,0.001753603677,0.003280754323,3,False,False
+4,"DrivAge, VehAge, BonusMalus, Region, ExposureBand",1.080903559,0.0237041581,True,0.001280574783,0.002174311798,3,False,False
+3,"DrivAge, VehAge, Region, ExposureBand",1.081041453,0.02399766203,True,0.001418469647,0.001183170397,4,False,False
+2,"DrivAge, VehAge, ExposureBand",1.079622984,0.02298884991,True,0,0,0,True,False
+1,"VehAge, ExposureBand",1.080764682,0.02375006052,True,0.001141698638,0.001482621652,3,False,True
+0,ExposureBand,1.082694905,0.02236807615,True,0.00307192079,0.001453267391,5,False,False
+0,(intercept only),1.112029667,0.02403084843,False,0.03240668311,0.003859521549,5,False,False

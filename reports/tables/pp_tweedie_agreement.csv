@@ -1,0 +1,3 @@
+comparison,corr_log_premium,ratio_p05,ratio_median,ratio_p95,share_policies_differ_gt_10pct,share_policies_differ_gt_20pct
+tweedie / freq x sev (as priced),0.9677931534,0.6839539326,0.8579899636,1.151564162,0.6962016218,0.3455989679
+"same, both rescaled to equal book mean",0.9677931534,0.7500837741,0.9409469254,1.262906099,0.563899742,0.2031201622

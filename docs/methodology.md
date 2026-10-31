@@ -155,13 +155,117 @@ misprices young drivers (out-of-fold A/E 1.35 for ages 18–20).
   new-vehicle relativity by +204%. This is because 42% of policies with claims but no amounts are VehAge 0,
   against 5% of matched claims in the same IDpol block, which supports treating that block as an artefact.
 
-### 2b. Severity
-*Phase 3.*
+### 2b. Severity model (phase 3)
+Source: `reports/severity.md` (training split; grouped 5-fold CV; holdout untouched).
+
+**Why a Gamma GLM with log link, weighted by claim count.** Claim amounts are positive and right-skewed, and
+their spread grows with their level. The Gamma family encodes Var(Y) = φμ², i.e. a constant coefficient of
+variation. With the log link, severity relativities multiply with frequency relativities. The unit of analysis is
+the policy: the response is the *average* capped claim amount and the weight is the number of claims, since an
+average of n claims has variance φμ²/n. As with frequency, the quasi-likelihood estimate of the mean holds
+without the full Gamma distribution. What matters for the tariff is the mean and variance function, and the
+distributional checks below matter for simulation.
+
+**How different the data are from frequency.**
+
+| | Frequency | Severity |
+|---|---|---|
+| Observations | 542,600 policies | 19,998 policies with claims (3.7%), 21,191 claims |
+| Coefficient of variation of the outcome | — | 14.0 raw, 1.85 after the large-loss cap |
+| Largest single observation | 4 claims | 4.08 million (capped at 32,162) |
+| Flat-rate amounts | — | 41% of claims on four values (1,204; 1,128.12; 1,172; 1,128) |
+
+The flat amounts look like fixed-cost settlements under an inter-insurer agreement. That reading can't be
+verified from the data, but the point masses are real and visible in the distribution figure.
+
+**Severity depends on how long the claiming record ran (D-014).** Mean capped severity falls from 2,512 on records
+under one month to 1,369 on full-year records. Over the same range, the share of flat-rate amounts rises from 23%
+to 48%. This is the same selection effect as in frequency: records that end early carry larger claims. It is
+the strongest severity signal in the data (quasi-F = 39.7 on 5 df; on its own it explains 2.6% of CV deviance).
+Severity therefore gets the same exposure-band control as frequency, fitted but pinned at full year when
+pricing. Without the control, frequency × severity would over-price full-year records by about 18% even though
+frequency alone is calibrated.
+
+**Which factors matter (D-013).** Factors are coarser than for frequency (3–4 bands instead of 8) because of
+roughly 27× less data and much noisier outcomes.
+- Every factor is strongly significant for frequency.
+- For severity, given the control, only VehAge is clearly significant (p = 2e-5). Region (21 df, p = 0.006),
+  BonusMalus (p = 0.04) and VehPower (p = 0.05) are borderline. DrivAge, LogDensity, VehBrand, VehGas and AgeMalus
+  are not significant.
+- *Selection method:* in-sample F-tests would keep five factors, including Region with 21 df. Grouped CV along the
+  backward-elimination path shows that every model with more than two factors is *worse* out of fold than
+  {DrivAge, VehAge}. The paired one-standard-error rule picks **VehAge only**: 0.90 for vehicles aged 10+ (CI
+  0.85–0.95) and 1.01 for 0–2 years.
+- Out of fold, the selected model explains 2.8% of severity deviance against the mean-severity baseline (5/5
+  folds). Most of that comes from the control (2.6%), and the all-factor model does worse (2.4%).
+
+**Why severity needs fewer, coarser factors and is far more volatile.**
+1. *Information:* the severity likelihood sees 21k claims, not 543k policy records. Standard errors scale
+   accordingly, so a 22-level factor that is estimable for frequency is mostly noise for severity.
+2. *Noise per observation:* a single claim's amount has a CV near 1.85 even after capping, and 14 before.
+   Frequency noise per policy-year is Poisson with a mean around 0.07, and pooling across many policies averages
+   it out. Severity relies on far fewer, much noisier observations.
+3. *Drivers differ:* frequency is about *whether* an accident happens (driver experience, claims history,
+   traffic density). Severity is about *what it costs*: vehicle value and age, settlement conventions, injury
+   mix. Here the rating factors barely separate costs once flat-rate settlements and record duration are
+   accounted for.
+4. *Consequence:* frequency explains 98.7% of the variance of log pure premium across policies and severity
+   1.1% (`reports/pure_premium.md` §2). The tariff's shape is almost entirely a frequency tariff with a
+   near-flat severity scale.
+
+**Gamma assumption checks.**
+- *Variance function:* a log-log regression of binned w(y−μ)² on fitted μ gives a slope of 2.41
+  (95% CI 1.92–2.89), consistent with Gamma's μ² and well away from Poisson-like (1). This is what the
+  mean/inference uses.
+- *Distribution shape:* the quantile residuals have mean 0.38, SD 0.54 and skewness 1.5, far from N(0,1). The
+  flat-rate point masses and a tight centre with a long tail are not Gamma-shaped. A single Gamma with φ ≈ 3.2
+  puts too much mass near zero and too little at the settlement values.
+- *Implication:* the Gamma GLM is fit for the *mean* (the tariff). It is **not** a valid generative model of
+  individual claims. The phase 6 Monte Carlo therefore resamples empirical capped amounts (by exposure band)
+  instead of drawing from a fitted Gamma. A two-part model (point mass + continuous part) is the alternative
+  if per-claim distributions are needed.
+
+### 2c. Pure premium and Tweedie cross-check (phase 3)
+Source: `reports/pure_premium.md`.
+
+**Pure premium** = annual frequency (full-year) × expected severity (full-year claim) × (1 + large-loss loading
+0.378). The training-book mean is 108.74 per policy-year. In the training book, frequency × severity reproduces
+total capped losses (A/E 1.002 with each record's own exposure band) and prices full-year records correctly
+(A/E 1.005).
+
+**Short-record cost.** Charged pro rata at the full-year rate, the tariff funds only 64% of capped losses
+(A/E 1.57), because short records have both higher frequency and higher severity. This is the D-012
+consequence, now on cost rather than counts. Phase 6 adds it as an explicit, configurable short-record loading.
+
+**Tweedie cross-check (D-015).**
+- *Setup:* a Tweedie GLM on loss cost per exposure-year with the same factors and control, power
+  p = (ν+2)/(ν+1) = 1.76 from the severity dispersion.
+- *Agreement:* it agrees closely in rank (correlation of log premiums 0.97).
+- *Totals:* it does not reproduce total losses (A/E 0.967 before a base-level correction), because the log link
+  with p ≠ 1 does not balance actual and expected totals.
+- *Full-year bias:* even after rebalancing, it under-prices full-year records by 11% (A/E 1.12). Its estimating
+  equations weight low-cost records more heavily, so the short-record cost is attributed differently.
+- *Per-policy differences:* with both models rescaled to the same book mean, 56% of policies differ by more than
+  10%. The Tweedie route lets every frequency factor also carry severity effects, which the severity CV shows do
+  not generalise.
+- *Power:* the choice of p moves premium shapes only modestly (5th–95th percentile ratio 0.97–1.03 for p ± 0.1).
+- *Conclusion:* the frequency × severity route is preferred for the tariff. Phase 4 compares both on the holdout.
 
 ## 3. Better accuracy ≠ better pricing
-*Phases 4–6. First example in §1: the free log(exposure) coefficient.*
+*Phases 4–6 build the main evidence. Examples found so far:*
+- §1: the free log(exposure) coefficient has the lowest deviance but gives a non-pro-rata rule.
+- §2b: in-sample F-tests keep five severity factors, but the model is worse out of fold than a
+  one-factor model.
+- §2c: the Tweedie GLM tracks in-sample loss cost per level more closely, yet it mis-prices the full-year
+  business that is actually quoted.
 
 ## 4. Large losses
 Claims above the training 99.5th percentile (32,162) are capped and the excess (37.8% of capped training losses)
 is spread as a flat loading (D-005). The severity model is therefore a model of *attritional* severity; the
 loading's size is a pricing assumption carried to the technical premium and included in sensitivity analysis.
+**Large losses are concentrated on short records.** In the training data, 0.29% of claims on full-year records
+exceed the cap, against 0.62% on shorter records. The excess is 11.6% of capped losses on full-year records but
+48.2% on shorter ones. The flat 37.8% loading is a book average, so applied to full-year business it would
+over-charge heavily. Phase 6 must split it: about 11.6% on the full-year rate, with the rest going into the
+short-record loading (D-012/D-014). Until then, the pure premium in `reports/pure_premium.md` uses the flat loading
+as specified in D-005.

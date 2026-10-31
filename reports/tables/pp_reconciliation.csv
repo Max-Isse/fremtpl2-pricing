@@ -1,0 +1,9 @@
+model,basis,expected,actual,ae
+freq x sev,"fitted (record's own exposure band), capped losses",35476207.88,35533111.99,1.001604008
+freq x sev,"priced at full-year rate, pro rata, capped losses",22635885.41,35533111.99,1.569769035
+freq x sev,"priced, full-year records only, capped losses",10039168.71,10089986.23,1.005061925
+freq x sev,"priced x (1 + large-loss loading), all losses incl. excess",31194099.32,48967531.18,1.569769035
+tweedie,"fitted (record's own exposure band), capped losses",35533111.99,35533111.99,1
+tweedie,"priced at full-year rate, pro rata, capped losses",20640231.64,35533111.99,1.721546183
+tweedie,"priced, full-year records only, capped losses",8973580.471,10089986.23,1.124410292
+tweedie,"priced x (1 + large-loss loading), all losses incl. excess",28443925.39,48967531.18,1.721546183

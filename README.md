@@ -4,7 +4,8 @@ Frequency–severity pricing for French motor third-party liability on the publi
 covers GLMs with proper exposure handling, LightGBM benchmarks, calibration and stability checks, fairness
 review, a pricing-strategy simulation and a rating-engine API.
 
-**Status:** phases 1–2 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency GLM). See
+**Status:** phases 1–3 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency, severity and
+pure premium). See
 [docs/phase_plan.md](docs/phase_plan.md).
 
 ## Decision supported
@@ -43,19 +44,35 @@ All numbers come from [reports/frequency.md](reports/frequency.md).
 - **An age × malus interaction was added.** Older drivers with a malus were under-predicted by up to 33%; a
   two-level AgeMalus factor fixes it (D-011).
 
+## Phase 3 findings (severity and pure premium)
+
+All numbers come from [reports/severity.md](reports/severity.md) and [reports/pure_premium.md](reports/pure_premium.md).
+
+- **Severity needs far fewer factors.** It has 21k claims against 543k policy records for frequency. In-sample
+  F-tests would keep five factors, but grouped CV keeps only VehAge (D-013). Frequency explains 98.7% of the
+  variation in pure premium across policies.
+- **Short records have more expensive claims.** Mean claim cost falls from 2,512 (records under one month) to
+  1,369 (full-year records), so severity gets the same full-year control as frequency (D-014). The pure premium
+  then prices full-year records correctly (A/E 1.005).
+- **The Gamma mean fits, the Gamma distribution doesn't.** 41% of claims sit on four flat-rate amounts. The
+  variance-vs-mean check supports the Gamma variance function, but quantile residuals are far from normal, so the
+  phase 6 Monte Carlo will resample empirical amounts (D-016).
+- **Tweedie is a cross-check, not the tariff.** It agrees on ranking (correlation 0.97) but isn't balanced and
+  under-prices full-year records by 11% (D-015).
+
 ## How to run
 
 Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 (uv installs it if missing).
 
 ```bash
 uv sync                    # install pinned dependencies from uv.lock
-uv run fremtpl2 all        # fetch -> build -> report -> frequency (~9 min; the frequency step is ~7)
+uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium (~14 min)
 uv run pytest              # tests (the full-data leakage test runs when the DB exists)
 uv run ruff check .        # lint
 ```
 
 `make all` / `make test` / `make lint` wrap the same commands where `make` is available. The individual
-steps are `uv run fremtpl2 fetch | build | report | frequency`. Every threshold is set in
+steps are `uv run fremtpl2 fetch | build | report | frequency | severity | pure_premium`. Every threshold is set in
 [configs/config.yaml](configs/config.yaml).
 
 ## Layout

@@ -53,7 +53,35 @@ def cmd_frequency(cfg: Config) -> None:
     log.info("wrote %s", write_frequency_report(res, cfg))
 
 
-STEPS = ["fetch", "build", "report", "frequency"]
+def cmd_severity(cfg: Config) -> None:
+    from fremtpl2_pricing.data.db import connect
+    from fremtpl2_pricing.models.severity import run_severity, save_artifact
+    from fremtpl2_pricing.reporting.severity import write_severity_report
+
+    con = connect(cfg, read_only=True)
+    try:
+        res = run_severity(con, cfg)
+    finally:
+        con.close()
+    log.info("wrote %s", save_artifact(res, cfg, cfg.path("artifacts_dir") / "severity_glm.json"))
+    log.info("wrote %s", write_severity_report(res, cfg))
+
+
+def cmd_pure_premium(cfg: Config) -> None:
+    from fremtpl2_pricing.data.db import connect
+    from fremtpl2_pricing.models.pure_premium import run_pure_premium, save_artifact
+    from fremtpl2_pricing.reporting.pure_premium import write_pure_premium_report
+
+    con = connect(cfg, read_only=True)
+    try:
+        res = run_pure_premium(con, cfg)
+    finally:
+        con.close()
+    log.info("wrote %s", save_artifact(res, cfg, cfg.path("artifacts_dir") / "pure_premium.json"))
+    log.info("wrote %s", write_pure_premium_report(res, cfg))
+
+
+STEPS = ["fetch", "build", "report", "frequency", "severity", "pure_premium"]
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -69,6 +97,8 @@ def main(argv: list[str] | None = None) -> None:
         "build": lambda: cmd_build(cfg),
         "report": lambda: cmd_report(cfg),
         "frequency": lambda: cmd_frequency(cfg),
+        "severity": lambda: cmd_severity(cfg),
+        "pure_premium": lambda: cmd_pure_premium(cfg),
     }
     for name in STEPS if args.step == "all" else [args.step]:
         steps[name]()

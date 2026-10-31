@@ -165,14 +165,22 @@ def relativities(
     bse: pd.Series,
     df: pd.DataFrame,
     level: float = 0.95,
+    volume: pd.Series | None = None,
+    outcome: pd.Series | None = None,
 ) -> pd.DataFrame:
-    """exp(coef) per level with Wald CI; reference levels have relativity 1. Exposure and claims per level."""
+    """exp(coef) per level with Wald CI; reference levels have relativity 1.
+
+    Also reports volume and outcome totals per level: by default exposure and claim count (frequency); the
+    severity model passes claim counts and amounts.
+    """
     z = stats.norm.ppf(0.5 + level / 2)
     binned = design.binned(df)
+    volume = df["exposure"] if volume is None else volume
+    outcome = df["claim_count"] if outcome is None else outcome
     rows = []
     for f in design.factors:
-        expo = df["exposure"].groupby(binned[f.name]).sum()
-        claims = df["claim_count"].groupby(binned[f.name]).sum()
+        expo = volume.groupby(binned[f.name]).sum()
+        claims = outcome.groupby(binned[f.name]).sum()
         for order, lvl in enumerate(f.levels):
             col = f"{f.name}[{lvl}]"
             b = float(params.get(col, 0.0))
@@ -193,7 +201,21 @@ def relativities(
                     "claims": float(claims.get(lvl, 0.0)),
                 }
             )
-    out = pd.DataFrame(rows)
+    cols = [
+        "factor",
+        "level",
+        "order",
+        "is_reference",
+        "is_control",
+        "coef",
+        "se",
+        "relativity",
+        "ci_low",
+        "ci_high",
+        "exposure",
+        "claims",
+    ]
+    out = pd.DataFrame(rows, columns=cols)
     out["observed_frequency"] = out["claims"] / out["exposure"]
     return out
 
@@ -218,3 +240,49 @@ def randomized_quantile_residuals(
         hi = stats.nbinom.cdf(y, n, p)
     u = rng.uniform(lo, hi)
     return np.asarray(stats.norm.ppf(np.clip(u, 1e-12, 1 - 1e-12)))
+
+
+# --- Severity (Gamma) and shared helpers -------------------------------------------------------------
+
+
+def fit_gamma(
+    X: pd.DataFrame, y: np.ndarray, weights: np.ndarray, groups: np.ndarray | None = None
+) -> sm.genmod.generalized_linear_model.GLMResults:
+    """Gamma GLM with log link on average severities y, var_weights = claim counts (Var = phi mu^2 / w).
+
+    With `groups`, the covariance is cluster-robust; otherwise the default Pearson-scaled covariance.
+    """
+    model = sm.GLM(y, X, family=sm.families.Gamma(sm.families.links.Log()), var_weights=weights)
+    if groups is None:
+        return model.fit(scale="X2")
+    return model.fit(scale="X2", cov_type="cluster", cov_kwds={"groups": groups})
+
+
+def gamma_deviance(y: np.ndarray, mu: np.ndarray, weights: np.ndarray | None = None) -> float:
+    """Total (unit-scale) Gamma deviance 2 * sum w [ (y - mu)/mu - log(y/mu) ]."""
+    y = np.asarray(y, dtype=float)
+    mu = np.asarray(mu, dtype=float)
+    d = 2 * ((y - mu) / mu - np.log(y / mu))
+    return float(np.sum(d if weights is None else weights * d))
+
+
+def gamma_quantile_residuals(y: np.ndarray, mu: np.ndarray, weights: np.ndarray, dispersion: float) -> np.ndarray:
+    """Quantile residuals for an average of `w` Gamma claims: y ~ Gamma(shape = w / phi, scale = mu phi / w)."""
+    shape = np.asarray(weights, dtype=float) / dispersion
+    u = stats.gamma.cdf(np.asarray(y, dtype=float), a=shape, scale=np.asarray(mu) / shape)
+    return np.asarray(stats.norm.ppf(np.clip(u, 1e-12, 1 - 1e-12)))
+
+
+def predict_log_linear(
+    design: GLMDesign, params: pd.Series | dict[str, float], df: pd.DataFrame, pricing: bool = True
+) -> np.ndarray:
+    """exp(X beta) for a log-link GLM saved as (design, params); pricing=True pins control factors."""
+    p = pd.Series(params, dtype=float)
+    X = design.matrix(df, pricing=pricing)
+    return np.exp(X[p.index].to_numpy() @ p.to_numpy())
+
+
+def tweedie_power_from_gamma_dispersion(phi: float) -> float:
+    """Compound Poisson-Gamma: Gamma shape nu = 1/phi gives Tweedie power p = (nu + 2) / (nu + 1)."""
+    nu = 1.0 / phi
+    return (nu + 2.0) / (nu + 1.0)

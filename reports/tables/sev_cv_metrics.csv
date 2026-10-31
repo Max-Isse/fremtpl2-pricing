@@ -1,0 +1,5 @@
+model,mean_deviance_per_claim,fold_sd,ae_amount,deviance_explained_vs_mean,folds_better_than_mean
+mean_severity,1.112029667,0.05373461064,1.000460384,0,0
+gamma_controls_only,1.082694905,0.0500165388,1.00017844,0.02637947817,5
+gamma_all_factors,1.085478313,0.05335270602,1.001182909,0.02387647989,5
+gamma_selected,1.080764682,0.0531067498,1.000233499,0.02811524315,5

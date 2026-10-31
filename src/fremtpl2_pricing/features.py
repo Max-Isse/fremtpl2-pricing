@@ -111,9 +111,21 @@ class GLMDesign:
     factors: list[FactorSpec]
 
     @classmethod
-    def fit(cls, df: pd.DataFrame, cfg: Config, factors: list[str] | None = None) -> GLMDesign:
-        """Learn levels and reference levels (largest exposure) from training data."""
+    def fit(
+        cls,
+        df: pd.DataFrame,
+        cfg: Config,
+        factors: list[str] | None = None,
+        bands: dict[str, list[float]] | None = None,
+        weight_col: str = "exposure",
+    ) -> GLMDesign:
+        """Learn levels and reference levels (largest total `weight_col`) from training data.
+
+        `bands` overrides `glm.bands` per factor (severity uses coarser bands); `weight_col` is the volume
+        measure used to pick reference levels (exposure for frequency, claim count for severity).
+        """
         gcfg = cfg.section("glm")
+        gcfg = {**gcfg, "bands": {**gcfg["bands"], **(bands or {})}}
         controls = gcfg.get("controls", {})
         names = factors if factors is not None else [*gcfg["factors"], *controls]
         specs = []
@@ -139,10 +151,10 @@ class GLMDesign:
                 levels = sorted(df[name].astype(str).unique())
                 spec = FactorSpec(name, "categorical", levels, levels[0])
             binned = spec.bin(df)
-            exposure = df["exposure"].groupby(binned).sum().reindex(spec.levels, fill_value=0.0)
+            exposure = df[weight_col].groupby(binned).sum().reindex(spec.levels, fill_value=0.0)
             if (exposure == 0).any():
                 empty = list(exposure[exposure == 0].index)
-                raise ValueError(f"{name}: no training exposure in level(s) {empty}; adjust the bands")
+                raise ValueError(f"{name}: no training {weight_col} in level(s) {empty}; adjust the bands")
             spec.reference = str(exposure.idxmax())
             specs.append(spec)
         return cls(specs)

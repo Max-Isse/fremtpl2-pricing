@@ -1,0 +1,10 @@
+step,factors_before,dispersion,dropped,p_F,f_test_rule
+1,"DrivAge, VehAge, VehPower, BonusMalus, LogDensity, VehBrand, VehGas, Region, AgeMalus",3.06690466,VehBrand,0.745279125,dropped
+2,"DrivAge, VehAge, VehPower, BonusMalus, LogDensity, VehGas, Region, AgeMalus",3.081705734,AgeMalus,0.6958455607,dropped
+3,"DrivAge, VehAge, VehPower, BonusMalus, LogDensity, VehGas, Region",3.08045226,LogDensity,0.5346842976,dropped
+4,"DrivAge, VehAge, VehPower, BonusMalus, VehGas, Region",3.087379685,VehGas,0.455951447,dropped
+5,"DrivAge, VehAge, VehPower, BonusMalus, Region",3.088915609,VehPower,0.02946405846,kept
+6,"DrivAge, VehAge, BonusMalus, Region",3.095944838,BonusMalus,0.01600180744,kept
+7,"DrivAge, VehAge, Region",3.099646589,Region,0.01349027613,kept
+8,"DrivAge, VehAge",3.149344436,DrivAge,0.0008724869418,kept
+9,VehAge,3.178237964,VehAge,0.0001130590594,kept

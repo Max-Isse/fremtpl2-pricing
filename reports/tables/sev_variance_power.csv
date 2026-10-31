@@ -1,0 +1,2 @@
+variance_power,ci_low,ci_high,r_squared,reference
+2.407954403,1.922000343,2.893908464,0.8575658799,"Poisson-like 1, Gamma 2, inverse Gaussian 3"

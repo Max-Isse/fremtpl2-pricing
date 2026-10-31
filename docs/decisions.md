@@ -130,3 +130,52 @@ Phase 6 makes it a configurable loading with sensitivity analysis. Option A hid 
 full-year premium.
 **Alternatives considered:** option A (offset only), rejected for the full-year bias; a free log(exposure)
 coefficient, rejected because it is a non-pro-rata rule (D-008).
+
+## D-013 Severity: coarse bands, selection by grouped CV (paired one-SE rule)
+**Choice:** use severity-specific coarse bands (`severity.bands`). Run backward elimination by quasi-F to order
+the factors, then choose the smallest model on that path whose grouped-CV Gamma deviance is within one *paired*
+standard error of the best. The result is **VehAge** plus the exposure-band control.
+**Why:** severity has about 27× less data and far noisier outcomes than frequency. In-sample F-tests at 5% would
+keep five factors, including Region with 21 levels, but that model is worse out of fold than smaller ones. The
+paired SE is used because fold-to-fold noise is shared by all models; unpaired SEs (0.024) are ten times the
+differences between models and would always choose the intercept.
+**Near miss:** {DrivAge, VehAge} has the lowest mean CV deviance, but its gain over VehAge alone (0.0011) is
+within its paired SE (0.0015). BonusMalus is borderline in-sample (p = 0.04).
+**Alternatives:** F-test selection (overfits here); severity using the same factors as frequency (what an
+unconstrained Tweedie GLM effectively does); penalised GLM (lasso). The penalised GLM is a reasonable phase 4
+option but harder to file.
+
+## D-014 Exposure-band control in the severity model
+**Choice:** fit severity with the same exposure-band control as frequency (`severity.controls`) and pin it at
+full year when pricing.
+**Why:** mean capped severity falls from 2,512 (records under one month) to 1,369 (full-year records). This is
+the strongest severity signal in the data (quasi-F 39.7). Without the control, the severity base level is an
+average over durations, and frequency × severity over-prices full-year records by about 18%. With it, full-year
+cost A/E is 1.005.
+**Consequence:** the short-record cost gap identified in D-012 grows: pro-rata at full-year rates funds 64% of
+capped losses. Phase 6 must load it explicitly.
+
+## D-015 Pure-premium route: frequency × severity, with a Tweedie GLM as cross-check
+**Choice:** the tariff is frequency GLM × severity GLM × (1 + large-loss loading). A Tweedie GLM (power from the
+severity dispersion, p = 1.76; intercept rebalanced to actual losses) is fitted as a cross-check only.
+**Why:** frequency × severity is balanced by level and calibrated on full-year records (A/E 1.005), and each
+component has its own validated factor set. The Tweedie GLM is not balanced (A/E 0.967 before correction) and,
+after rebalancing, under-prices full-year records by 11%. It also lets frequency factors carry severity effects
+that do not generalise (D-013).
+**Alternatives:** Tweedie as the tariff (one model, but the calibration issues above); a Tweedie GLM with p
+estimated by profile likelihood (sensitivity to ±0.1 in p is small: 5th–95th percentile premium ratio
+0.97–1.03).
+
+## D-016 Severity distribution for simulation: empirical, not Gamma
+**Choice:** the phase 6 Monte Carlo resamples empirical capped claim amounts (by exposure band) instead of
+simulating from the fitted Gamma.
+**Why:** 41% of claims sit on four flat-rate amounts, and Gamma quantile residuals have mean 0.38 and SD 0.54
+instead of 0 and 1. The Gamma variance function fits (slope 2.41, CI 1.92–2.89), but the distribution shape does
+not. Using the fitted Gamma would misstate profit volatility and tail risk (VaR/TVaR).
+
+## D-017 (OPEN, phase 6) Split the large-loss loading by record duration
+**Issue:** the flat large-loss loading (D-005, 37.8%) is a book average. Excess above the cap is 11.6% of capped
+losses on full-year records but 48.2% on shorter records (large losses are 0.29% vs 0.62% of claims).
+**Plan:** in phase 6, load the full-year rate with the full-year excess ratio and move the rest into the explicit
+short-record loading, so full-year customers are not charged for large losses that concentrate on short records.
+Both ratios go into config with sensitivity analysis.
