@@ -33,7 +33,11 @@ REQUIRED = ["VehPower", "VehAge", "DrivAge", "BonusMalus", "VehBrand", "VehGas",
 
 
 def build_tariff(con: duckdb.DuckDBPyConnection, cfg: Config) -> dict[str, Any]:
-    """Assemble the deployable tariff from the phase 2-3 artefacts and training-split duration terms."""
+    """Assemble the deployable tariff from the phase 2-3 artefacts and training-split duration terms.
+
+    `scoring.variant`: "full" packages the phase 2 frequency GLM; "filable" (recommended, D-026/D-028) refits it
+    without `pricing.filable_glm.drop_factors` and with the merged BonusMalus bands.
+    """
     from fremtpl2_pricing.models.pure_premium import PurePremiumModel, load_training
     from fremtpl2_pricing.pricing.simulation import large_loss_loadings, short_period_factors
 
@@ -43,17 +47,31 @@ def build_tariff(con: duckdb.DuckDBPyConnection, cfg: Config) -> dict[str, Any]:
     ppm = PurePremiumModel.from_artifacts(art / "frequency_glm.json", art / "severity_glm.json", 0.0)
     band = ppm.freq_design.factor("ExposureBand")
     train = load_training(con)
+    pc, sc = cfg.section("pricing"), cfg.section("scoring")
+    variant = str(sc.get("variant", "full"))
+    if variant == "full":
+        freq_design, freq_params = ppm.freq_design, pd.Series(fa["params"], dtype=float)
+    elif variant == "filable":
+        fc = pc["filable_glm"]
+        keep = [f.name for f in ppm.freq_design.factors if f.name not in fc["drop_factors"]]
+        freq_design = GLMDesign.fit(train, cfg, factors=keep, bands={"BonusMalus": fc["bonusmalus_bands"]})
+        fit = glm.fit_poisson(
+            freq_design.matrix(train), train["claim_count"].to_numpy(float), train["exposure"].to_numpy()
+        )
+        freq_params = fit.params
+    else:
+        raise ValueError(f"unknown scoring.variant {variant!r}: use 'full' or 'filable'")
 
     def cost(pricing: bool) -> np.ndarray:
-        return glm.predict_log_linear(
-            ppm.freq_design, ppm.freq_params, train, pricing=pricing
-        ) * glm.predict_log_linear(ppm.sev_design, ppm.sev_params, train, pricing=pricing)
+        return glm.predict_log_linear(freq_design, freq_params, train, pricing=pricing) * glm.predict_log_linear(
+            ppm.sev_design, ppm.sev_params, train, pricing=pricing
+        )
 
     sp = short_period_factors(band.bin(train).to_numpy(), cost(False), cost(True), train["exposure"].to_numpy())
     ll = large_loss_loadings(con, lambda d: band.bin(d).to_numpy(), band.reference)
-    pc, sc = cfg.section("pricing"), cfg.section("scoring")
     body = {
-        "frequency": {"design": fa["design"], "params": fa["params"]},
+        "variant": variant,
+        "frequency": {"design": freq_design.to_dict(), "params": {k: float(v) for k, v in freq_params.items()}},
         "severity": {"design": sa["design"], "params": sa["params"]},
         "short_period_factors": {str(k): float(v) for k, v in sp.items()},
         "large_loss_loading": {"full_year": float(ll["full-year"]), "part_year": float(ll["part-year"])},
@@ -202,6 +220,7 @@ class RatingEngine:
         return {
             "model_name": t["model_name"],
             "model_version": t["model_version"],
+            "variant": t.get("variant", "full"),
             "package_version": t["package_version"],
             "built_at": t["built_at"],
             "expense_ratio": t["expense_ratio"],

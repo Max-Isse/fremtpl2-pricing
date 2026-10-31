@@ -145,6 +145,7 @@ pricing:
 
 scoring:
   model_name: fremtpl2-glm-tariff
+  variant: filable                           # filable (recommended, D-026/D-028) | full
   top_factors: 3                             # rating factors returned per quote, by size of effect
   max_batch: 1000                            # policies per /quote/batch request
   ranges:                                    # inclusive validation ranges (training data limits)

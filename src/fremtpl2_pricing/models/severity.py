@@ -53,7 +53,9 @@ def load_severity_training(con: duckdb.DuckDBPyConnection, holdout: bool = False
 
 
 def claim_amounts(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
-    return query_df(con, "SELECT claim_amount, claim_amount_raw FROM claims_clean WHERE NOT is_holdout")
+    return query_df(
+        con, "SELECT claim_amount, claim_amount_raw FROM claims_clean WHERE NOT is_holdout ORDER BY claim_id"
+    )
 
 
 @dataclass

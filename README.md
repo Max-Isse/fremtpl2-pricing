@@ -4,17 +4,45 @@ Frequency–severity pricing for French motor third-party liability on the publi
 covers GLMs with proper exposure handling, LightGBM benchmarks, calibration and stability checks, fairness
 review, a pricing-strategy simulation and a rating-engine API.
 
-**Status:** phases 1–7 of 8 are complete (data, SQL layer, cleaning, exposure analysis, frequency, severity,
-pure premium, benchmarks, holdout comparison, explainability, fairness, pricing-strategy simulation and
-deployment). See
-[docs/phase_plan.md](docs/phase_plan.md).
+**Status:** complete (8 phases; see [docs/phase_plan.md](docs/phase_plan.md)). All numbers below come from code in this
+repository and can be regenerated with one command. Behaviour-dependent figures are estimates under stated,
+assumed elasticities, not achieved results.
+
+## Recommendation
+
+From the [pricing report](reports/pricing_report.md):
+
+1. **File a frequency × severity GLM tariff.** Use the filable version: Region dropped and a monotone bonus-malus
+   scale. LightGBM ranks risk better on the holdout (pure-premium Gini 0.346 vs 0.303), but under the assumed price
+   elasticity its advantage doesn't turn into profit, and its individual premiums move 20% between refits
+   (GLM 7.5%).
+2. **Cap premium changes at ±15%** for the first renewal cycle. Against the current BonusMalus-only tariff this is
+   estimated to cut the loss ratio from 0.765 to 0.734 and add about 0.37M a year on a ~12M book, under every "true
+   cost" assumption tested.
+3. **Keep LightGBM as a shadow challenger,** and run a price test before relying on the elasticity assumptions.
+
+Details, risks and what would change the recommendation: [reports/recommendations.md](reports/recommendations.md).
+
+## Documentation
+
+| Topic | Where |
+|---|---|
+| Business case | [docs/business_case.md](docs/business_case.md) |
+| Statistical reasoning (exposure, frequency vs severity, accuracy ≠ pricing, …) | [docs/methodology.md](docs/methodology.md) |
+| Every judgement call (D-001 … D-028) | [docs/decisions.md](docs/decisions.md) |
+| Data lineage with row counts | [docs/data_lineage.md](docs/data_lineage.md), [reports/data_quality.md](reports/data_quality.md) |
+| Model card, limitations, monitoring | [docs/model_card.md](docs/model_card.md), [docs/limitations.md](docs/limitations.md), [docs/monitoring_plan.md](docs/monitoring_plan.md) |
+| How to run and reproduce | [docs/how_to_run.md](docs/how_to_run.md) |
+| Generated analysis reports | `reports/*.md` (tables as CSV in `reports/tables/`) |
 
 ## Decision supported
 
 The rate charged per risk profile: a premium that covers expected claims, expenses and margin without
 unjustified price differences. See [docs/business_case.md](docs/business_case.md).
 
-## Phase 1 findings
+## Findings by phase
+
+### Phase 1 (data, exposure)
 
 All numbers come from [reports/data_quality.md](reports/data_quality.md) and
 [reports/exposure_analysis.md](reports/exposure_analysis.md).
@@ -30,7 +58,7 @@ All numbers come from [reports/data_quality.md](reports/data_quality.md) and
   observed). Using log(exposure) as a free feature fits better (coefficient 0.67) but gives a non-filable
   pro-rata rule (D-008, [methodology §1](docs/methodology.md)).
 
-## Phase 2 findings (frequency GLM)
+### Phase 2 (frequency GLM)
 
 All numbers come from [reports/frequency.md](reports/frequency.md).
 
@@ -45,7 +73,7 @@ All numbers come from [reports/frequency.md](reports/frequency.md).
 - **An age × malus interaction was added.** Older drivers with a malus were under-predicted by up to 33%; a
   two-level AgeMalus factor fixes it (D-011).
 
-## Phase 3 findings (severity and pure premium)
+### Phase 3 (severity and pure premium)
 
 All numbers come from [reports/severity.md](reports/severity.md) and [reports/pure_premium.md](reports/pure_premium.md).
 
@@ -61,7 +89,7 @@ All numbers come from [reports/severity.md](reports/severity.md) and [reports/pu
 - **Tweedie is a cross-check, not the tariff.** It agrees on ranking (correlation 0.97) but isn't balanced and
   under-prices full-year records by 11% (D-015).
 
-## Phase 4 findings (benchmarks on the holdout)
+### Phase 4 (benchmarks on the holdout)
 
 All numbers come from [reports/model_comparison.md](reports/model_comparison.md), with grouped-bootstrap 95% CIs.
 
@@ -75,7 +103,7 @@ All numbers come from [reports/model_comparison.md](reports/model_comparison.md)
   LightGBM moves short-record cost into rating factors. Which model sets prices is left open for phases 5–6
   (D-019).
 
-## Phase 5 findings (explainability, stability, fairness)
+### Phase 5 (explainability, stability, fairness)
 
 All numbers come from [reports/explainability_fairness.md](reports/explainability_fairness.md) (training split only).
 
@@ -91,7 +119,7 @@ All numbers come from [reports/explainability_fairness.md](reports/explainabilit
   dropping density as well costs 0.017 Gini and moves 52% of exposure by more than 10%, the most rural band paying
   34% more. Proposal: drop Region, keep density with monitoring (D-022).
 
-## Phase 6 findings (pricing strategy simulation, SYNTHETIC, assumed elasticity)
+### Phase 6 (pricing strategy simulation, SYNTHETIC, assumed elasticity)
 
 All numbers come from [reports/strategy_simulation.md](reports/strategy_simulation.md). They are estimates under
 stated assumptions, not achievable results.
@@ -113,7 +141,7 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 (uv installs it if mis
 
 ```bash
 uv sync                    # install pinned dependencies from uv.lock
-uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium -> benchmarks -> compare -> explain -> simulate -> package (~32 min)
+uv run fremtpl2 all        # fetch -> build -> report -> frequency -> severity -> pure_premium -> benchmarks -> compare -> explain -> simulate -> package (~35 min)
 uv run pytest              # tests (the full-data leakage test runs when the DB exists)
 uv run ruff check .        # lint
 ```
@@ -159,7 +187,8 @@ docker run --rm -p 8000:8000 fremtpl2-rating
 | Path | Contents |
 |---|---|
 | `sql/` | numbered DuckDB transforms (raw → policy / exposure / claims → clean) |
-| `src/fremtpl2_pricing/` | importable package: data, analysis, reporting (models, pricing, API to follow) |
+| `src/fremtpl2_pricing/` | importable package: `data/`, `models/` (GLMs, benchmarks), `evaluation/`, `analysis/` (exposure, SHAP, fairness), `pricing/` (simulation), `scoring/` (tariff, batch), `api/`, `reporting/` |
+| `examples/` | example policy file and its scored output |
 | `tests/` | pytest on hand-built fixtures; leakage checks |
 | `docs/` | business case, methodology, decisions, data lineage, phase plan |
 | `reports/` | generated reports, CSV tables and figures |

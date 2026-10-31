@@ -13,7 +13,7 @@ open questions. Status is updated at the end of each phase.
 | 5 | Explainability and fairness: GLM relativity plots with CIs, SHAP vs relativities, proxy-risk review of region/density, premium dispersion, regulatory context; "better accuracy ≠ better pricing" evidence (methodology §3) | `analysis/explain.py`, `analysis/fairness.py`, `reports/explainability_fairness.md`, methodology §3 and §6, D-021–D-022 | done |
 | 6 | Pricing strategy simulation: technical premium, five strategies, assumed elasticity retention model, risk-mix shift, Monte Carlo (≥5,000 runs) profit / VaR / TVaR, sensitivity on elasticity, expense ratio, cap | `pricing/simulation.py`, `pricing` in `configs/config.yaml`, `reports/strategy_simulation.md`, methodology §7, D-023–D-026 | done |
 | 7 | Deployment: batch scoring with validation and model version, FastAPI rating engine with schemas and tests, Dockerfile, optional Streamlit | `scoring/engine.py`, `scoring/batch.py`, `api/app.py`, `Dockerfile`, `examples/`, D-027 (Streamlit not built) | done |
-| 8 | Documentation pack: `reports/pricing_report.md`, `reports/recommendations.md`, `docs/model_card.md`, monitoring plan, limitations, final README | | |
+| 8 | Documentation pack, reproducibility check | `reports/pricing_report.md`, `reports/recommendations.md`, `docs/model_card.md`, `docs/monitoring_plan.md`, `docs/limitations.md`, `docs/how_to_run.md`, D-019/D-022 closed, D-028 | done |
 
 ## Repository layout
 

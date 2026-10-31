@@ -288,3 +288,21 @@ record structure (split records, early terminations). Before real use they need 
 insurer's cancellation and short-term rules; full-year quotes are unaffected.
 **Not built:** the optional Streamlit app (the API and batch scoring cover quoting; strategy comparison lives in
 `reports/strategy_simulation.md`).
+
+## D-019 closed: the GLM sets prices; LightGBM is a shadow challenger
+**Decision:** file the frequency × severity GLM (filable variant, D-026) with changes capped at ±15%. LightGBM runs
+as a challenger and diagnostic tool.
+**Why:** LightGBM ranks risk better on the holdout, but its advantage does not survive caps and the assumed
+elasticity (capped realised profit 0.04M vs 0.26M for the GLM), its policy premiums move 20% between refits
+(GLM 7.5%), and its largest premium differences sit in profiles almost never observed at full year
+(`reports/pricing_report.md`).
+
+## D-022 closed: Region dropped in the filed tariff, density kept and monitored
+**Decision:** the recommended (filable) tariff drops Region; density stays, with an annual fairness check
+(monitoring plan item 12). Estimated cost 0.06M a year realised profit vs keeping Region (0.5% of premium).
+
+## D-028 Deployed variant is configurable; the default is the recommended filable GLM
+**Choice:** `scoring.variant: filable` makes `fremtpl2 package` refit the frequency GLM without the dropped factors
+and with the merged BonusMalus bands (same specification as the phase 6 strategy), recompute its short-period
+factors, and package it. `full` packages the phase 2 GLM unchanged. The variant is part of the hashed tariff, so
+the model version distinguishes them.

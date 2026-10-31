@@ -60,7 +60,9 @@ def large_loss_loadings(con: duckdb.DuckDBPyConnection, band_of: Any, full_year_
     Pooled rather than per band: a handful of very large claims would otherwise set a band's loading (one band
     reaches 124% from a few claims). D-017.
     """
-    claims = query_df(con, "SELECT exposure, claim_amount, large_loss_excess FROM claims_clean WHERE NOT is_holdout")
+    claims = query_df(
+        con, "SELECT exposure, claim_amount, large_loss_excess FROM claims_clean WHERE NOT is_holdout ORDER BY claim_id"
+    )
     group = np.where(band_of(claims) == full_year_band, "full-year", "part-year")
     g = claims.assign(group=group).groupby("group")[["claim_amount", "large_loss_excess"]].sum()
     return g["large_loss_excess"] / g["claim_amount"]
@@ -163,7 +165,7 @@ def build_book(con: duckdb.DuckDBPyConnection, cfg: Config) -> Book:
     df["freq_glm"] = glm.predict_log_linear(ppm.freq_design, ppm.freq_params, hold, pricing=False)
     df["freq_lgbm"] = bf["lgbm_frequency"]
 
-    claims = query_df(con, "SELECT exposure, claim_amount_raw FROM claims_clean WHERE NOT is_holdout")
+    claims = query_df(con, "SELECT exposure, claim_amount_raw FROM claims_clean WHERE NOT is_holdout ORDER BY claim_id")
     cb = band_of(claims)
     raw = {lvl: claims["claim_amount_raw"].to_numpy()[cb == lvl] for lvl in band_spec.levels}
     log.info("book: %s holdout policies; filable GLM factors %s", len(df), keep)

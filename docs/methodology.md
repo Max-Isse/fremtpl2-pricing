@@ -471,10 +471,10 @@ assumptions.
 
 | Strategy | Retention (exposure) | Loss ratio, expected | Loss ratio, realised | Realised profit | P(loss), Monte Carlo |
 |---|---|---|---|---|---|
-| flat | 51% | 0.89 | 0.88 | −1.10M | 0.81 |
-| current | 78% | 0.77 | 0.76 | −0.17M | 0.48 |
-| GLM | 80% | 0.72 | 0.74 | 0.10M | 0.34 |
-| LightGBM | 80% | 0.79 | 0.74 | 0.05M | 0.52 |
+| flat | 51% | 0.89 | 0.88 | −1.10M | 0.82 |
+| current | 78% | 0.77 | 0.76 | −0.17M | 0.49 |
+| GLM | 80% | 0.72 | 0.74 | 0.10M | 0.33 |
+| LightGBM | 80% | 0.79 | 0.74 | 0.05M | 0.53 |
 | GLM capped ±15% | 80% | 0.73 | 0.73 | **0.26M** | 0.36 |
 | LightGBM capped ±15% | 81% | 0.74 | 0.75 | 0.04M | 0.40 |
 | filable GLM capped ±15% | 80% | 0.73 | 0.73 | 0.19M | 0.38 |
@@ -505,7 +505,7 @@ The total premium in play is about 12M a year.
    - Actual expenses at 30% instead of the priced 25% turn every strategy negative (capped GLM −0.36M); at 20%
      the capped GLM earns 0.87M.
 6. *One year is noisy.* The Monte Carlo profit SD is about 1.5M (12% of premium). The 99.5% one-year VaR is about
-   4.8M for the GLM strategies (40% of premium), driven by very large claims on a small book. The differences
+   4.9–5.0M for the GLM strategies (40–41% of premium), driven by very large claims on a small book. The differences
    between the GLM strategies (0.1–0.2M) are far smaller than one year's noise, so the choice has to rest on
    expected value, robustness and structural arguments, not on a single year's result.
 

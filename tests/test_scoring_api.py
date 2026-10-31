@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from fremtpl2_pricing.api import app as app_module
+from fremtpl2_pricing.config import Config
 from fremtpl2_pricing.models.frequency import run_frequency
 from fremtpl2_pricing.models.frequency import save_artifact as save_freq
 from fremtpl2_pricing.models.severity import run_severity
@@ -37,6 +38,7 @@ POLICY = {
 def artifacts(tmp_path_factory: pytest.TempPathFactory) -> Path:
     tmp = tmp_path_factory.mktemp("tariff")
     cfg, con = _book(tmp)
+    cfg = Config(raw={**cfg.raw, "scoring": {**cfg.raw["scoring"], "variant": "full"}}, root=cfg.root)
     con.execute("CREATE OR REPLACE TABLE claims_clean AS SELECT *, 0.0 AS large_loss_excess FROM claims_clean")
     art = cfg.path("artifacts_dir")
     fr = run_frequency(con, cfg)
@@ -147,3 +149,24 @@ def test_api_rejects_bad_input(client: TestClient, monkeypatch: pytest.MonkeyPat
     assert client.post("/quote", json={k: v for k, v in POLICY.items() if k != "Region"}).status_code == 422
     monkeypatch.setattr(app_module, "MAX_BATCH", 1)
     assert client.post("/quote/batch", json={"policies": [POLICY, POLICY]}).status_code == 413
+
+
+def test_filable_variant_drops_region_and_merges_malus_bands(artifacts: Path, tmp_path: Path) -> None:
+    from fremtpl2_pricing.config import load_config
+    from tests.test_benchmarks_compare import _book
+
+    cfg, con = _book(tmp_path)
+    con.execute("CREATE OR REPLACE TABLE claims_clean AS SELECT *, 0.0 AS large_loss_excess FROM claims_clean")
+    import shutil
+
+    shutil.copytree(artifacts, cfg.path("artifacts_dir"), dirs_exist_ok=True)
+    raw = {**cfg.raw, "scoring": {**cfg.raw["scoring"], "variant": "filable"}}
+    t = build_tariff(con, Config(raw=raw, root=cfg.root))
+    names = [f["name"] for f in t["frequency"]["design"]["factors"]]
+    assert t["variant"] == "filable" and "Region" not in names
+    bm = next(f for f in t["frequency"]["design"]["factors"] if f["name"] == "BonusMalus")
+    assert bm["edges"] == [float(x) for x in load_config().section("pricing")["filable_glm"]["bonusmalus_bands"]]
+    eng = RatingEngine(t)
+    q = eng.quote(eng.validate(pd.DataFrame([{**POLICY, "Region": "R99"}]))[0])  # Region no longer rated
+    assert len(q) == 1 and q["premium_for_term"].iloc[0] > 0
+    assert eng.model_version != RatingEngine.load(artifacts).model_version
